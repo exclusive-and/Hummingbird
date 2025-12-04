@@ -1,0 +1,86 @@
+cabal-version: 3.4
+
+name: birds
+version: 0
+
+build-type: Simple
+
+common common-language
+  default-language: Haskell2010
+  default-extensions:
+    DefaultSignatures
+    DeriveGeneric
+    FlexibleContexts
+    FlexibleInstances
+    GeneralizedNewtypeDeriving
+    ImportQualifiedPost
+    KindSignatures
+    LambdaCase
+    MultiParamTypeClasses
+    NoImplicitPrelude
+    NoStarIsType
+    RankNTypes
+    ScopedTypeVariables
+    StandaloneDeriving
+    TupleSections
+    TypeAbstractions
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+
+library
+  import: common-language
+  exposed-modules:
+    Birds
+  hs-source-dirs: birds
+  build-depends:
+    , base ^>= 4.20
+    , birds:boot
+    , containers
+  default-extensions:
+    ConstraintKinds
+    DerivingVia
+
+library boot
+  import: common-language
+  exposed-modules:
+    Num
+    Text
+  hs-source-dirs: boot
+  build-depends:
+    , base ^>= 4.20
+    , containers
+    , text
+  default-extensions:
+    ConstraintKinds
+    DerivingVia
+
+library hummingbird
+  import: common-language
+  exposed-modules:
+    Hummingbird.Fetch
+    Hummingbird.Fetch.Mapped
+    Hummingbird.Fetch.Writer
+    Hummingbird.Name
+    Hummingbird.Prelude
+  hs-source-dirs: hummingbird
+  build-depends:
+    , base ^>= 4.20
+    , birds:boot
+    , containers
+    , filepath
+    , hashable
+    , monad-chronicle
+    , mtl
+    , parsec
+    , prettyprinter
+    , text
+    , these
+    , transformers
+    , unordered-containers
+  default-extensions:
+    ConstraintKinds
+    DataKinds
+    DerivingVia
+    FunctionalDependencies
+    GADTs
