@@ -6,7 +6,8 @@ version: 0
 build-type: Simple
 
 common common-language
-  default-language: Haskell2010
+  default-language:
+    Haskell2010
   default-extensions:
     DefaultSignatures
     DeriveGeneric
@@ -58,15 +59,29 @@ library boot
 library hummingbird
   import: common-language
   exposed-modules:
-    Hummingbird.Fetch
-    Hummingbird.Fetch.Mapped
-    Hummingbird.Fetch.Writer
-    Hummingbird.Name
+    Hummingbird.Dialectica
+    Hummingbird.Error
     Hummingbird.Prelude
+    Hummingbird.Surface
+    --Hummingbird
+    --Hummingbird.Builtin
+    --Hummingbird.Core
+    --Hummingbird.HL
+    --Hummingbird.Parse
+    --Hummingbird.Parsec
+    --Hummingbird.Rename
+    --Hummingbird.Var
+  other-modules:
+    Hummingbird.Surface.Layoutize
+    Hummingbird.Surface.Located
+    Hummingbird.Surface.Parsec
+    Hummingbird.Surface.Token
+    Hummingbird.Surface.Tokenize
   hs-source-dirs: hummingbird
   build-depends:
     , base ^>= 4.20
     , birds:boot
+    , birds:rock
     , containers
     , filepath
     , hashable
@@ -75,6 +90,7 @@ library hummingbird
     , parsec
     , prettyprinter
     , text
+    , text-rope
     , these
     , transformers
     , unordered-containers
@@ -83,4 +99,29 @@ library hummingbird
     DataKinds
     DerivingVia
     FunctionalDependencies
+    GADTs
+
+library rock
+  import: common-language
+  exposed-modules:
+    Fetch
+    Fetch.Chronicle
+    Fetch.Except
+    Fetch.Mapped
+    Fetch.Writer
+  hs-source-dirs: rock
+  build-depends:
+    , base ^>= 4.20
+    , birds:boot
+    , containers
+    , hashable
+    , monad-chronicle
+    , mtl
+    , text
+    , these
+    , transformers
+    , unordered-containers
+  default-extensions:
+    ConstraintKinds
+    DerivingVia
     GADTs

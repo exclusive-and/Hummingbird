@@ -1,8 +1,6 @@
 module Num
 (
-  -- * Numbers and arithmetic
-
-  -- ** Built-in numeric types
+  -- * Built-in numeric types
   Integer,
   Int,
   Natural,
@@ -11,7 +9,7 @@ module Num
   Float,
   Double,
 
-  -- ** Integer arithmetic
+  -- * Integer arithmetic
   Additive ((+), zero),
   Subtractive ((-), negate),
   Multiplicative ((*), one),
@@ -20,11 +18,11 @@ module Num
   Distributive,
   Integral (div, mod, divMod, quot, rem, quotRem),
 
-  -- *** Algebraic projections
+  -- ** Algebraic projections
   Sum (Sum, getSum),
   Product (Product, getProduct),
 
-  -- ** Fractional arithmetic
+  -- * Fractional arithmetic
   Fractional ((/), recip),
   Field,
 

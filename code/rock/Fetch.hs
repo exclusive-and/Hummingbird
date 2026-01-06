@@ -1,27 +1,42 @@
-{-# language UndecidableInstances #-}
+{-# Language DataKinds #-}
+{-# Language FunctionalDependencies #-}
+{-# Language PolyKinds #-}
+{-# Language UndecidableInstances #-}
 
-module Hummingbird.Fetch
+module Fetch
 (
   -- * Fetch answers to questions
-  Fetch (Fetch),
+  MonadFetch (fetch),
+
+  -- *
+  Task (Task, unTask),
+  runTask,
+  hoistQuery,
 
   -- ** Inference rules
   Rules,
   GenRules,
 
-  -- ** Fetching from a knowledge-base
-  MonadFetch (fetch),
-  Task (Task, unTask),
+  -- ** Task kinds
   TaskKind (Input, NonInput),
-  runTask,
+  input,
+  noError,
+  nonInput,
 )
 where
 
 import Num
-import Text qualified
+import Prelude hiding (
+    Num (..),
+    Integral (..),
+    Fractional (..),
+  )
 
 import Control.Monad
-import Control.Monad.Chronicle
+import Control.Monad.Chronicle (
+    ChronicleT,
+    MonadChronicle (..),
+  )
 import Control.Monad.Cont
 import Control.Monad.Except
 import Control.Monad.Fix
@@ -42,18 +57,18 @@ import Data.HashMap.Lazy (HashMap)
 import Data.HashMap.Lazy qualified as HashMap
 import Data.HashSet (HashSet)
 import Data.HashSet qualified as HashSet
+import Data.These
 
-import Hummingbird.Prelude
+newtype Fetch q m = Fetch (forall a. q a -> m a)
 
-newtype Fetch q = Fetch (forall a. q a -> IO a)
+-- | Computes an answer @a@.
+-- May ask itself @q@-questions to compute the desired answer.
+newtype Task q m a = Task {
+    unTask :: ReaderT (Fetch q m) m a
+  }
+  deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
 
--- |  Inference rules for questions in @q@.
-type Rules q = GenRules q q
-
--- |  Inference rules for @p@-questions that can depend on @q@-questions.
-type GenRules p q = forall a. p a -> Task q a
-
--- |  Monads that can 'fetch' the answer to @q@-questions.
+-- | Monads that can 'fetch' answers to queries from a query type @q@.
 class (Monad m) => MonadFetch q m | m -> q where
   fetch :: q a -> m a
   fetch = lift . fetch
@@ -63,54 +78,56 @@ class (Monad m) => MonadFetch q m | m -> q where
     => q a
     -> m a
 
-instance (MonadFetch q m, Semigroup c) => MonadFetch q (ChronicleT c m)
+instance (Monad m) => MonadFetch q (Task q m) where
+  fetch key = Task $
+    asks (\(Fetch fetch_) -> fetch_ key) >>= lift
 
+instance (MonadFetch q m, Semigroup c) => MonadFetch q (ChronicleT c m)
 instance (MonadFetch q m) => MonadFetch q (ContT r m)
 instance (MonadFetch q m) => MonadFetch q (ExceptT e m)
 instance (MonadFetch q m) => MonadFetch q (IdentityT m)
 instance (MonadFetch q m) => MonadFetch q (MaybeT m)
 instance (MonadFetch q m) => MonadFetch q (ReaderT r m)
-instance (MonadFetch q m) => MonadFetch q (Strict.StateT s m)
-instance (MonadFetch q m) => MonadFetch q (Lazy.StateT s m)
-
 instance (MonadFetch q m, Monoid w) => MonadFetch q (Strict.RWST r w s m)
 instance (MonadFetch q m, Monoid w) => MonadFetch q (Lazy.RWST r w s m)
+instance (MonadFetch q m) => MonadFetch q (Strict.StateT s m)
+instance (MonadFetch q m) => MonadFetch q (Lazy.StateT s m)
 instance (MonadFetch q m, Monoid w) => MonadFetch q (Strict.WriterT w m)
 instance (MonadFetch q m, Monoid w) => MonadFetch q (Lazy.WriterT w m)
 
--- |  Computes an answer @a@.
--- May ask itself @q@-questions to compute the desired answer.
-newtype Task q a = Task {
-    unTask :: ReaderT (Fetch q) IO a
-  }
-  deriving
-    ( Functor
-    , Applicative
-    , Monad
-    , MonadIO
-    , MonadFix
-    )
+-- | Inference rules for questions in @q@.
+type Rules q = GenRules q q
+
+-- | Inference rules for @p@-questions that can depend on @q@-questions.
+type GenRules p q = forall a. p a -> Task q IO a
+
+runTask :: Rules q -> Task q IO a -> IO a
+runTask rules (Task task) =
+  runReaderT task $ Fetch $ runTask rules . rules
+
+-- |  Hoist @p@-question 'Task's into @q@-question 'Task's via a natural transformation on
+-- questions.
+hoistQuery ::
+  (forall b. p b -> Task q m b)
+  -> Task p m a
+  -> Task q m a
+hoistQuery f (Task task) =
+  Task $ ReaderT $ \fetch_ ->
+    runReaderT task $ Fetch $ \key ->
+      runReaderT (unTask $ f key) fetch_
+
+data Chronicle c f a where
+  Chronicle :: f a -> Chronicle c f (These c a)
 
 data TaskKind
   = Input
   | NonInput
 
-runTask :: Rules q -> Task q a -> IO a
-runTask rules (Task task) =
-  runReaderT task $ Fetch $ runTask rules . rules
+input :: (Functor m) => m a -> m ((Either e a, TaskKind))
+input = fmap ((, Input) . Right)
 
-instance MonadFetch q (Task q) where
-  fetch key = Task $ do
-    io <- asks (\(Fetch fetch_) -> fetch_ key)
-    liftIO io
+noError :: (Functor m) => m a -> m ((Either e a, TaskKind))
+noError = fmap ((, NonInput) . Right)
 
--- |  Hoist @p@-question 'Task's into @q@-question 'Task's via a natural transformation on
--- questions.
-hoistQuery ::
-  (forall b. p b -> Task q b)
-  -> Task p a
-  -> Task q a
-hoistQuery f (Task task) =
-  Task $ ReaderT $ \fetch_ ->
-    runReaderT task $ Fetch $ \key ->
-      runReaderT (unTask $ f key) fetch_
+nonInput :: (Functor m) => m (Either e a) -> m ((Either e a, TaskKind))
+nonInput = fmap (, NonInput)

@@ -1,4 +1,4 @@
-{-# language OverloadedStrings #-}
+{-# Language OverloadedStrings #-}
 
 module Hummingbird.Name where
 

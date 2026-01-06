@@ -1,21 +1,17 @@
-module Hummingbird.Fetch.Mapped
-(
-  -- * Fetching from (hash-)maps
-  Query (GetMap, Lookup),
-  rule,
-)
-where
+module Fetch.Mapped where
 
 import Num
-import Text qualified
+import Prelude hiding (
+    Num (..),
+    Integral (..),
+    Fractional (..),
+  )
 
 import Data.Hashable
 import Data.HashMap.Lazy (HashMap)
 import Data.HashMap.Lazy qualified as HashMap
 
-import Hummingbird.Fetch (fetch)
-import Hummingbird.Fetch qualified as Fetch
-import Hummingbird.Prelude
+import Fetch (fetch, Task)
 
 -- |
 data Query k v a where
@@ -26,9 +22,6 @@ data Query k v a where
   -- |
   Lookup :: k -> Query k v (Maybe v)
 
-deriving instance (Show k, Show v) => Show (Query k v a)
-deriving instance (Eq k, Eq v) => Eq (Query k v a)
-
 instance (Hashable k, Hashable v) => Hashable (Query k v a) where
   hashWithSalt salt query =
     case query of
@@ -37,12 +30,15 @@ instance (Hashable k, Hashable v) => Hashable (Query k v a) where
       Lookup key ->
         hashWithSalt salt (1 :: Int, key)
 
+deriving instance (Eq k, Eq v) => Eq (Query k v a)
+deriving instance (Show k, Show v) => Show (Query k v a)
+
 rule ::
-  (Hashable k)
+  (Hashable k, Monad m)
   => (forall b. Query k v b -> q b)
   -> Query k v a
-  -> Fetch.Task q (HashMap k v)
-  -> Fetch.Task q a
+  -> Task q m (HashMap k v)
+  -> Task q m a
 rule inject query getMap =
   case query of
     GetMap ->
