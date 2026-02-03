@@ -46,7 +46,6 @@ library boot
   import: common-language
   exposed-modules:
     Num
-    Text
   hs-source-dirs: boot
   build-depends:
     , base ^>= 4.20
@@ -59,24 +58,21 @@ library boot
 library hummingbird
   import: common-language
   exposed-modules:
+    Hummingbird.Builtin
     Hummingbird.Dialectica
     Hummingbird.Error
     Hummingbird.Prelude
+    Hummingbird.Rename
     Hummingbird.Surface
-    --Hummingbird
-    --Hummingbird.Builtin
-    --Hummingbird.Core
-    --Hummingbird.HL
-    --Hummingbird.Parse
-    --Hummingbird.Parsec
-    --Hummingbird.Rename
-    --Hummingbird.Var
-  other-modules:
     Hummingbird.Surface.Layoutize
     Hummingbird.Surface.Located
+    Hummingbird.Surface.Parse
     Hummingbird.Surface.Parsec
     Hummingbird.Surface.Token
     Hummingbird.Surface.Tokenize
+    Hummingbird.Var
+    Hummingbird.VarMap
+  other-modules:
   hs-source-dirs: hummingbird
   build-depends:
     , base ^>= 4.20

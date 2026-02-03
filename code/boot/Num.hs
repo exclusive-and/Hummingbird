@@ -31,8 +31,7 @@ module Num
   Eq ((==), (/=)),
   Ordering (LT, EQ, GT),
   Ord (compare, (<), (<=), (>=), (>), max, min),
-)
-where
+) where
 
 import Prelude qualified
 import Prelude hiding (
