@@ -2,10 +2,9 @@
 
 module Hummingbird.Builtin where
 
-import Data.Hashable (Hashable)
+import Data.Hashable
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Prettyprinter (Pretty (..))
 
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name

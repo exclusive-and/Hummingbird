@@ -2,35 +2,36 @@ module Hummingbird.Prelude
 (
   -- * Boot imports
   module Num,
-  module Prelude,
 
   -- * Hackage imports
-  module Data.Text,
-  module GHC.Generics,
+  module Generics,
+  module Prelude,
+  module Prettyprinter,
+  module Text,
 ) where
 
 import Num (
-    Integer,
-    Int,
-    Natural,
-    Word,
-    Rational,
-    Float,
-    Double,
-    Additive ((+)),
-    Subtractive ((-), negate),
-    Multiplicative ((*)),
-    FromInteger (fromInteger),
-    Integral (div, mod, divMod, quot, rem, quotRem),
-    Fractional ((/), recip),
+  Integer,
+  Int,
+  Natural,
+  Word,
+  Rational,
+  Float,
+  Double,
+  Additive ((+)),
+  Subtractive ((-), negate),
+  Multiplicative ((*)),
+  FromInteger (fromInteger),
+  Integral (div, mod, divMod, quot, rem, quotRem),
+  Fractional ((/), recip),
   )
 
+import Data.Text as Text (Text)
+import GHC.Generics as Generics (Generic)
 import Prelude hiding (
-    Num (..),
-    Integral (..),
-    Fractional (..),
-    String,
+  Num (..),
+  Integral (..),
+  Fractional (..),
+  String,
   )
-
-import Data.Text (Text)
-import GHC.Generics (Generic)
+import Prettyprinter (Pretty (pretty))

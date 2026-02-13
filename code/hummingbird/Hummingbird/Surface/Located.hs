@@ -1,9 +1,9 @@
 {-# Language NamedFieldPuns #-}
 {-# Language OverloadedRecordDot #-}
+{-# Language OverloadedStrings #-}
 
 module Hummingbird.Surface.Located where
 
-import Prettyprinter (Pretty (..))
 import Prettyprinter qualified as Pretty
 
 import Hummingbird.Prelude
@@ -40,17 +40,17 @@ data Span = Span {
 instance Pretty Span where
   pretty origin = Pretty.hcat [
       pretty origin.name
-    , Pretty.colon
+    , ":"
     , pretty origin.beginLine
-    , Pretty.comma
+    , ","
     , pretty origin.beginColumn
-    , pretty "-"
+    , "-"
     , if origin.beginLine == origin.endLine then
         pretty origin.endColumn
       else
         Pretty.hcat
           [ pretty origin.endLine
-          , Pretty.comma
+          , ","
           , pretty origin.endColumn
           ]
     ]

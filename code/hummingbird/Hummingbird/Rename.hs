@@ -26,16 +26,15 @@ module Hummingbird.Rename
   runRename,
 ) where
 
-import Data.Map (Map)
-import Data.Map qualified as Map
 import Control.Monad.Chronicle
 import Control.Monad.State
 import Control.Monad.Trans
 import Data.Foldable
+import Data.Map (Map)
+import Data.Map qualified as Map
 import Data.Semigroup
 import Data.These
 import Data.Traversable
-import Prettyprinter (Pretty (pretty))
 import Prettyprinter qualified as Pretty
 
 import Hummingbird.Builtin

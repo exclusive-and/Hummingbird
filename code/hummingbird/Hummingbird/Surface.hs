@@ -2,7 +2,6 @@
 
 module Hummingbird.Surface where
 
-import Prettyprinter (Pretty (pretty))
 import Prettyprinter qualified as Pretty
 
 import Hummingbird.Literal (Literal)

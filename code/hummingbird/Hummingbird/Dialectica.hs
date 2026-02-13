@@ -8,11 +8,9 @@ import Data.HashSet (HashSet)
 import Data.HashSet qualified as HashSet
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Rope (Rope)
 import Data.These
-import Prettyprinter (Pretty (pretty))
 import Prettyprinter qualified as Pretty
 import System.FilePath
 

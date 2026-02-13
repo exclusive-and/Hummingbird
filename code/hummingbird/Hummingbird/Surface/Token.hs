@@ -13,11 +13,10 @@ module Hummingbird.Surface.Token
   Layoutness (..),
   ) where
 
-import Prelude
-import Prettyprinter
-
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
+import Hummingbird.Prelude
+import Prettyprinter as Pretty
 
 data Token (l :: Layoutness) where
 
@@ -112,22 +111,22 @@ instance Pretty (Token l) where
     ArrowL -> "<-"
     ArrowR -> "->"
     Begin -> ">{"
-    BracketL -> lbracket
-    BracketR -> rbracket
+    BracketL -> "["
+    BracketR -> "]"
     Character c -> pretty c
-    Colon -> colon
-    Comma -> comma
+    Colon -> ":"
+    Comma -> ","
     End -> "}<"
-    Equals -> equals
-    Indent n -> enclose langle rangle (pretty n)
+    Equals -> "="
+    Indent n -> enclose "<" ">" (pretty n)
     Integer x -> pretty x
     Keyword kw -> pretty kw
     Lambda -> backslash
     Newline -> backslash <> "n"
     Operator op -> pretty op
     SpecialWord kw -> pretty kw
-    ParenL -> lparen
-    ParenR -> rparen
+    ParenL -> "("
+    ParenR -> ")"
     Word word -> pretty word
 
 instance Show (Token l) where

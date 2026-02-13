@@ -3,8 +3,6 @@
 module Hummingbird.Error where
 
 import Control.Exception (Exception)
-import GHC.Generics (Generic)
-import Prettyprinter (Pretty (pretty))
 import Prettyprinter qualified as Pretty
 
 import Hummingbird.Name (Name)

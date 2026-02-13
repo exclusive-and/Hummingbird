@@ -1,12 +1,9 @@
-{-# Language DeriveAnyClass #-}
-
 module Hummingbird.Var where
 
 import Data.Hashable (Hashable)
-import Prettyprinter (Pretty (pretty))
 import Prettyprinter qualified as Pretty
 
-import Hummingbird.Builtin (Builtin)
+import Hummingbird.Builtin
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
 import Hummingbird.Prelude
