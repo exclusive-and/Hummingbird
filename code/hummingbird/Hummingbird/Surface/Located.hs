@@ -3,9 +3,6 @@
 
 module Hummingbird.Surface.Located where
 
-import Num
-import Text qualified
-
 import Prettyprinter (Pretty (..))
 import Prettyprinter qualified as Pretty
 

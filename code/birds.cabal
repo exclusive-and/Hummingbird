@@ -35,7 +35,7 @@ library
     Birds
   hs-source-dirs: birds
   build-depends:
-    , base ^>= 4.20
+    , base ^>= 4.21
     , birds:boot
     , containers
   default-extensions:
@@ -45,23 +45,43 @@ library
 library boot
   import: common-language
   exposed-modules:
+    Data.Map.Justified
     Num
   hs-source-dirs: boot
   build-depends:
-    , base ^>= 4.20
+    , base ^>= 4.21
     , containers
     , text
   default-extensions:
     ConstraintKinds
+    DeriveTraversable
     DerivingVia
+    RoleAnnotations
+
+executable hummingbird-cli
+  main-is: hummingbird/app/Main.hs
+  build-depends:
+    , base ^>= 4.21
+    , birds:hummingbird
+  default-language:
+    Haskell2010
+  default-extensions:
+    ImportQualifiedPost
+    OverloadedStrings
 
 library hummingbird
   import: common-language
   exposed-modules:
     Hummingbird.Builtin
+    Hummingbird.Codebase
     Hummingbird.Dialectica
     Hummingbird.Error
+    Hummingbird.Interpret
+    Hummingbird.Literal
+    Hummingbird.Main
+    Hummingbird.Name
     Hummingbird.Prelude
+    Hummingbird.Query
     Hummingbird.Rename
     Hummingbird.Surface
     Hummingbird.Surface.Layoutize
@@ -75,7 +95,7 @@ library hummingbird
   other-modules:
   hs-source-dirs: hummingbird
   build-depends:
-    , base ^>= 4.20
+    , base ^>= 4.21
     , birds:boot
     , birds:rock
     , containers
@@ -101,13 +121,11 @@ library rock
   import: common-language
   exposed-modules:
     Fetch
-    Fetch.Chronicle
-    Fetch.Except
     Fetch.Mapped
-    Fetch.Writer
+    Fetch.Monad
   hs-source-dirs: rock
   build-depends:
-    , base ^>= 4.20
+    , base ^>= 4.21
     , birds:boot
     , containers
     , hashable

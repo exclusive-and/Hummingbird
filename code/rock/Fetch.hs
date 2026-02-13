@@ -17,39 +17,23 @@ module Fetch
   Rules,
   GenRules,
 
-  -- ** Task kinds
-  TaskKind (Input, NonInput),
-  input,
-  noError,
-  nonInput,
-)
-where
+  -- * Query transformers
 
-import Num
-import Prelude hiding (
-    Num (..),
-    Integral (..),
-    Fractional (..),
-  )
+  -- ** Writer
+  Writer (Writer),
+  writer,
+
+  -- ** Except
+  Except (Except),
+  handle,
+) where
+
+import Prelude
 
 import Control.Monad
-import Control.Monad.Chronicle (
-    ChronicleT,
-    MonadChronicle (..),
-  )
-import Control.Monad.Cont
-import Control.Monad.Except
 import Control.Monad.Fix
-import Control.Monad.Identity
 import Control.Monad.Reader
-import Control.Monad.RWS.Lazy qualified as Lazy
-import Control.Monad.RWS.Strict qualified as Strict
-import Control.Monad.State.Lazy qualified as Lazy
-import Control.Monad.State.Strict qualified as Strict
 import Control.Monad.Trans
-import Control.Monad.Trans.Maybe
-import Control.Monad.Writer.Lazy qualified as Lazy
-import Control.Monad.Writer.Strict qualified as Strict
 import Data.Bifunctor
 import Data.Foldable
 import Data.Hashable
@@ -58,6 +42,8 @@ import Data.HashMap.Lazy qualified as HashMap
 import Data.HashSet (HashSet)
 import Data.HashSet qualified as HashSet
 import Data.These
+
+import Fetch.Monad
 
 newtype Fetch q m = Fetch (forall a. q a -> m a)
 
@@ -68,32 +54,9 @@ newtype Task q m a = Task {
   }
   deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
 
--- | Monads that can 'fetch' answers to queries from a query type @q@.
-class (Monad m) => MonadFetch q m | m -> q where
-  fetch :: q a -> m a
-  fetch = lift . fetch
-
-  default fetch ::
-    (MonadTrans t, MonadFetch q n, m ~ t n)
-    => q a
-    -> m a
-
 instance (Monad m) => MonadFetch q (Task q m) where
   fetch key = Task $
     asks (\(Fetch fetch_) -> fetch_ key) >>= lift
-
-instance (MonadFetch q m, Semigroup c) => MonadFetch q (ChronicleT c m)
-instance (MonadFetch q m) => MonadFetch q (ContT r m)
-instance (MonadFetch q m) => MonadFetch q (ExceptT e m)
-instance (MonadFetch q m) => MonadFetch q (IdentityT m)
-instance (MonadFetch q m) => MonadFetch q (MaybeT m)
-instance (MonadFetch q m) => MonadFetch q (ReaderT r m)
-instance (MonadFetch q m, Monoid w) => MonadFetch q (Strict.RWST r w s m)
-instance (MonadFetch q m, Monoid w) => MonadFetch q (Lazy.RWST r w s m)
-instance (MonadFetch q m) => MonadFetch q (Strict.StateT s m)
-instance (MonadFetch q m) => MonadFetch q (Lazy.StateT s m)
-instance (MonadFetch q m, Monoid w) => MonadFetch q (Strict.WriterT w m)
-instance (MonadFetch q m, Monoid w) => MonadFetch q (Lazy.WriterT w m)
 
 -- | Inference rules for questions in @q@.
 type Rules q = GenRules q q
@@ -119,15 +82,31 @@ hoistQuery f (Task task) =
 data Chronicle c f a where
   Chronicle :: f a -> Chronicle c f (These c a)
 
-data TaskKind
-  = Input
-  | NonInput
+-- |
+data Writer w f a where
+  Writer :: f a -> Writer w f (a , w)
 
-input :: (Functor m) => m a -> m ((Either e a, TaskKind))
-input = fmap ((, Input) . Right)
+-- |
+writer ::
+  (forall a. p a -> w -> Task q IO ())
+  -> GenRules (Writer w p) q
+  -> GenRules p q
+writer write rules key = do
+  (result, w) <- rules $ Writer key
+  write key w
+  pure result
 
-noError :: (Functor m) => m a -> m ((Either e a, TaskKind))
-noError = fmap ((, NonInput) . Right)
+-- |
+data Except e f a where
+  Except :: f a -> Except e f (Either e a)
 
-nonInput :: (Functor m) => m (Either e a) -> m ((Either e a, TaskKind))
-nonInput = fmap (, NonInput)
+-- |
+handle ::
+  (forall a. p a -> e -> Task q IO a)
+  -> GenRules (Except e p) q
+  -> GenRules p q
+handle handler rules key = do
+  result <- rules $ Except key
+  case result of
+    Left err -> handler key err
+    Right okay -> pure okay

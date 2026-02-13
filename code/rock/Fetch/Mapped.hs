@@ -1,11 +1,7 @@
 module Fetch.Mapped where
 
 import Num
-import Prelude hiding (
-    Num (..),
-    Integral (..),
-    Fractional (..),
-  )
+import Prelude
 
 import Data.Hashable
 import Data.HashMap.Lazy (HashMap)

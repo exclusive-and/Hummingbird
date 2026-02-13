@@ -1,4 +1,16 @@
 {
+    "get.nix": {
+        "branch": "main",
+        "description": null,
+        "homepage": null,
+        "owner": "exclusive-and",
+        "repo": "get.nix",
+        "rev": "f0b1c3ea2cd082e77d82d0c957820a03e55bbb83",
+        "sha256": "15qnn3niajia3sk6lazgq58c7x3j0dhx2hmx8m2jjkxywswd4awm",
+        "type": "tarball",
+        "url": "https://github.com/exclusive-and/get.nix/archive/f0b1c3ea2cd082e77d82d0c957820a03e55bbb83.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
     "nixpkgs": {
         "branch": "nixos-25.11",
         "description": "Nix Packages collection",

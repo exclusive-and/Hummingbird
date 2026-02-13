@@ -1,39 +1,48 @@
 module Hummingbird.Query where
 
-import Num
-import Text qualified
-
-import Control.Monad
-import Control.Monad.Trans
-import Data.Bifunctor
-import Data.Foldable
+import Data.Hashable
 import Data.HashSet (HashSet)
-import Data.HashSet qualified as HashSet
+import Data.Kind
+import Data.Text (Text)
 import Data.Text.Rope (Rope)
-import Prettyprinter (Pretty (pretty))
-import Prettyprinter qualified as Pretty
 import System.FilePath
 
+import Hummingbird.Codebase (Codebase)
+import Hummingbird.Error (Error)
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
 import Hummingbird.Prelude
+import Hummingbird.Rename (RnMap)
 import Hummingbird.Surface qualified as Surface
-import Hummingbird.Var (
-    Var (..),
-    InScope,
-    VarMap,
-  )
-import Hummingbird.Var qualified as Var
+import Hummingbird.Var (Var)
 
--- |  Questions about code.
--- I can compile things by computing answers to these queries.
-data Query answer where
+data Query (answer :: Type) where
 
-  -- | Which directories contain source files?
-  SourceDirectories :: Query [FilePath]
+  -- |
+  GetCodebase :: Query (Codebase cdb)
 
-  -- | What are my input files?
-  InputFiles :: Query (HashSet FilePath)
+  -- | Get the latest interned version of a module.
+  GetModule ::
+    !Name.Module
+    -> Codebase cdb
+    -> Query (Surface.Module Var)
+
+  -- | What names does this module define?
+  ModuleDefines :: !Name.Module -> Codebase cdb -> Query RnMap
+
+  -- | What definitions does this module contain?
+  ModuleDefinitions ::
+    !Name.Module
+    -> Codebase cdb
+    -> Query [Surface.Declaration Var]
+  
+  -- | Ingest a parsed surface-language declaration and try to intern
+  --   its changes into the codebase.
+  IngestDecl ::
+    !Name.Module
+    -> Surface.Declaration Name
+    -> Codebase cdb
+    -> Query (Maybe [Error], Codebase cdb')
 
   -- | What is the raw text of this source file?
   FileText :: !FilePath -> Query Text
@@ -41,17 +50,17 @@ data Query answer where
   -- | What is the rope representation of this source file?
   FileRope :: !FilePath -> Query Rope
 
-  -- | What file was this module defined in?
-  ModuleFile :: !Name.Module -> Query FilePath
-
   -- |
-  ParsedFile :: !FilePath -> Query (Surface.Module Name)
+  ParsedFile :: !FilePath -> Query (Either [Error] (Surface.Module Name))
 
-  -- |
-  ParsedModule :: !Name.Module -> Query (Surface.Module Name)
+  -- | Ingest a source file and try to intern its changes into the codebase.
+  IngestFile ::
+    !FilePath
+    -> Codebase cdb
+    -> Query (Maybe [Error], Codebase cdb')
 
-  -- | What names does this module define?
-  ModuleDefines :: !Name.Module -> Query (HashSet Name)
-
-  -- | What definitions does this module contain?
-  ModuleDefinitions :: !Name.Module -> Query [Surface.Declaration Name]
+  -- | Ingest a directory recursively.
+  IngestDirectory ::
+    !FilePath
+    -> Codebase cdb
+    -> Query (Maybe [Error], Codebase cdb')

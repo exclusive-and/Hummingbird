@@ -1,14 +1,15 @@
-{...} @ initArgs:
-import ./nix/build-haskell initArgs (
-  self: {
-    birds = {
-      version = "0";
-      src = ./code;
-      buildInputs = hackage: with hackage; [
-        base
-        containers
-        text
-      ];
-    };
-  }
-)
+args@{
+  sources ? import ./nix/sources.nix
+, getnix ? import sources."get.nix" {}
+, isShell ? false
+}:
+getnix.buildHaskell {
+  name = "birds";
+  version = "0";
+  depends = hspkgs: with hspkgs; [
+    base
+    containers
+    text
+  ];
+  inherit isShell;
+}

@@ -4,9 +4,6 @@
 
 module Hummingbird.Surface.Parse where
 
-import Num
-import Text qualified
-
 import Control.Applicative
 import Control.Monad
 import Data.Coerce (coerce)

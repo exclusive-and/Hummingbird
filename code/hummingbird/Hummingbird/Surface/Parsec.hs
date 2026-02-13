@@ -69,10 +69,8 @@ module Hummingbird.Surface.Parsec
 )
 where
 
-import Num
-import Text
-import Text qualified
-
+import Data.Text (Text)
+import Data.Text qualified as Text
 import Text.Parsec (Parsec, ParsecT)
 import Text.Parsec qualified as Parsec
 import Text.Parsec.Pos (

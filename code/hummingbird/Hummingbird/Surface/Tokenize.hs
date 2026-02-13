@@ -27,13 +27,12 @@ module Hummingbird.Surface.Tokenize
 )
 where
 
-import Num
-import Text qualified
-
 import Control.Applicative
 import Control.Monad.Chronicle
 import Data.Char
 import Data.Functor
+import Data.Text (Text)
+import Data.Text qualified as Text
 import Text.Parsec qualified
 
 import Hummingbird.Name (Name)

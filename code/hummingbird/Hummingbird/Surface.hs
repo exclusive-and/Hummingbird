@@ -2,9 +2,6 @@
 
 module Hummingbird.Surface where
 
-import Num
-import Text qualified
-
 import Prettyprinter (Pretty (pretty))
 import Prettyprinter qualified as Pretty
 
@@ -31,8 +28,10 @@ data Declaration word
 
 instance (Pretty word) => Pretty (Declaration word) where
   pretty = \case
-    Fun name body -> Pretty.hsep [pretty name, "=", pretty body]
-    Sig name ty -> Pretty.hsep [pretty name, ":", pretty ty]
+    Fun name body ->
+      Pretty.hsep [pretty name, "=", pretty body]
+    Sig name ty ->
+      Pretty.hsep [pretty name, ":", pretty ty]
 
 data Term word
   = Lit Literal

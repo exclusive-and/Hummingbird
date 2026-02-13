@@ -6,6 +6,8 @@ cradle:
       component: "birds:lib:boot"
     - path: "code/hummingbird"
       component: "birds:lib:hummingbird"
+    - path: "code/hummingbird/app"
+      component: "birds:exe:hummingbird-cli"
     - path: "code/rock"
       component: "birds:lib:rock"
       

@@ -1,9 +1,7 @@
 module Hummingbird.Literal where
 
-import Num
-import Text qualified
-
 import Data.Char
+import Data.Text (Text)
 import Prettyprinter (Pretty (pretty))
 import Prettyprinter qualified as Pretty
 

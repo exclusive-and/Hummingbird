@@ -7,9 +7,6 @@ module Hummingbird.Tacit
 )
 where
 
-import Num
-import Text qualified
-
 import Prettyprinter (Pretty (pretty))
 import Prettyprinter qualified as Pretty
 

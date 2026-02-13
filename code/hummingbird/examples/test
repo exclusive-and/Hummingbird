@@ -1,0 +1,39 @@
+Example module
+
+cons = cake [] k
+
+take = [dip] cons cons
+
+quote = [] cons
+
+nip = quote dip drop
+
+sip1 = \a -> \b -> [b] a [b]
+sip2 = [quote cat] s2 apply
+
+dig2 = [] cons cons dip
+
+s1 = \a -> \b -> \c -> [[c] b] [c] a
+s2 = [[dup] dip [cons] cons cons dip apply] dip apply
+
+a = [a] placeholder
+b = [b] placeholder
+c = [c] placeholder
+
+f = drop [x] [y]
+g = drop drop [u] [v] [w]
+h = drop drop [s] [t]
+
+s = [s] placeholder
+t = [t] placeholder
+u = [u] placeholder
+v = [v] placeholder
+w = [w] placeholder
+x = [x] placeholder
+y = [y] placeholder
+z = [z] placeholder
+
+example =
+  [quote cons] dip swap apply
+
+main = [a] [b] [c] example

@@ -2,11 +2,10 @@
 
 module Hummingbird.Name where
 
-import Num
-import Text qualified
-
 import Data.Hashable
 import Data.String (IsString (fromString))
+import Data.Text (Text)
+import Data.Text qualified as Text
 import Prettyprinter (Pretty (pretty))
 
 import Hummingbird.Prelude

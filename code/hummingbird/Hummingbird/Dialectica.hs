@@ -1,11 +1,4 @@
-{-# Language NamedFieldPuns #-}
-{-# Language OverloadedRecordDot #-}
-{-# Language OverloadedStrings #-}
-
 module Hummingbird.Dialectica where
-
-import Num
-import Text qualified
 
 import Control.Monad
 import Control.Monad.Trans
@@ -13,160 +6,177 @@ import Data.Bifunctor
 import Data.Foldable
 import Data.HashSet (HashSet)
 import Data.HashSet qualified as HashSet
+import Data.Map (Map)
+import Data.Map qualified as Map
+import Data.Text (Text)
+import Data.Text qualified as Text
 import Data.Text.Rope (Rope)
-import Fetch (fetch, Task, GenRules)
-import Fetch qualified
-import Fetch.Chronicle
-import Fetch.Except (Except (..))
-import Fetch.Mapped qualified as Mapped
-import Fetch.Writer (Writer (..))
+import Data.These
 import Prettyprinter (Pretty (pretty))
 import Prettyprinter qualified as Pretty
 import System.FilePath
 
+import Fetch (
+  fetch,
+  Task,
+  GenRules,
+  Except (..),
+  Writer (..),
+  )
+import Fetch qualified
+import Fetch.Mapped qualified as Mapped
+
+import Hummingbird.Builtin (builtins)
+import Hummingbird.Codebase (Codebase)
+import Hummingbird.Codebase qualified as Codebase
 import Hummingbird.Error (Error)
 import Hummingbird.Error qualified as Error
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
 import Hummingbird.Prelude
 import Hummingbird.Query (Query (..))
+import Hummingbird.Rename (RnMap, runRename, renameBinds)
 import Hummingbird.Surface qualified as Surface
-import Hummingbird.Var (
-    Var (..),
-    InScope,
-    VarMap,
-  )
-import Hummingbird.Var qualified as Var
-
-{-}
-data Rules = Rules {
-    getSourceDirs :: Task Query [FilePath],
-    getFileText :: FilePath -> Task Query Text,
-    getFileRope :: FilePath -> Task Query Rope,
-    getModule :: Name.Module -> Task Query Module,
-    getModuleFile :: Name.Module -> Task Query (Either [Error] FilePath),
-    getModuleParsed :: FilePath -> Task Query (Either [Error] (Surface.Module Name)),
-    getModuleDefines :: Name.Module -> Task Query (HashSet Name),
-    getModuleDefinitions :: Name.Module -> Task Query [Surface.Declaration Name]
-  }
--}
+import Hummingbird.Var (Var (Prim))
+import Hummingbird.VarMap (VarMap)
+import Hummingbird.VarMap qualified as VarMap
 
 rules ::
-     HashSet FilePath
-  -> HashSet FilePath
-  -> (FilePath -> IO (Either Rope Text))
-  -> (FilePath -> Text -> Either [Error] (Surface.Module Name))
+  ReadFile
+  -> (FilePath -> ParseModuleSource)
   -> GenRules
-      (Writer Fetch.TaskKind (Except [Error] Query))
+      (Writer [Error] (Writer TaskKind Query))
       Query
 
-rules dirs files readFile_ parse_ (Writer (Except query)) =
+rules readFile_ parse_ (Writer (Writer query)) =
   case query of
-    SourceDirectories ->
-      Fetch.input $ getSourceDirs dirs files
-    InputFiles ->
-      Fetch.input $ pure files
+    GetCodebase ->
+      noError $ pure Codebase.empty
+
+    GetModule modName codebase ->
+      noError $ do
+        case Codebase.lookupModule modName codebase of
+          Nothing -> do
+            pure $ Surface.Module modName []
+          Just (foundModule, _) -> do
+            pure foundModule
+
+    ModuleDefines modName codebase ->
+      noError $ getModuleDefines modName codebase
+
+    ModuleDefinitions modName codebase ->
+      noError $ do
+        modDefn <- fetch $ GetModule modName codebase
+        pure $ Surface.decls modDefn
+
+    IngestDecl modName decl codebase ->
+      noError $ ingestDecl modName decl codebase
+
     FileText path ->
-      Fetch.input $ getFileText readFile_ path
+      input $ getFileText readFile_ path
+
     FileRope path ->
-      Fetch.input $ getFileRope readFile_ path
-    ParsedModule moduleName ->
-      Fetch.noError $ getParsedModule moduleName
-    ModuleFile moduleName ->
-      Fetch.nonInput $ getModuleFile moduleName
+      input $ getFileRope readFile_ path
+
     ParsedFile path ->
-      Fetch.nonInput $ getParsedFile path parse_
-    ModuleDefines moduleName ->
-      Fetch.noError $ getModuleDefines moduleName
-    ModuleDefinitions moduleName ->
-      Fetch.noError $ getModuleDefinitions moduleName
+      noError $ parseModuleFile parse_ path
 
--- |
-getSourceDirs ::
-  HashSet FilePath
-  -> HashSet FilePath
-  -> Task Query IO [FilePath]
-getSourceDirs dirs files = do
-  case (HashSet.toList dirs, HashSet.toList files) of
-    ([], [file]) ->
-      pure [takeDirectory file]
-    (dirs', _) ->
-      pure dirs'
+    IngestFile path codebase ->
+      noError $ ingestFile path codebase
 
--- |
-getFileText ::
-  (FilePath -> IO (Either Rope Text))
-  -> FilePath
-  -> Task Query IO Text
+    IngestDirectory rootPath codebase ->
+      noError $ ingestDirectory rootPath codebase
+
+type ReadFile = FilePath -> IO (Either Rope Text)
+
+getFileText :: ReadFile -> FilePath -> Task Query IO Text
 getFileText readFile_ path = do
   result <- liftIO $ readFile_ path
   case result of
     Left rope -> undefined
     Right text -> pure text
 
--- |
-getFileRope ::
-  (FilePath -> IO (Either Rope Text))
-  -> FilePath
-  -> Task Query IO Rope
+getFileRope :: ReadFile -> FilePath -> Task Query IO Rope
 getFileRope readFile_ path = do
   result <- liftIO $ readFile_ path
   case result of
     Left rope -> pure rope
     Right text -> undefined
 
--- |
-getParsedModule ::
-  Name.Module
-  -> Task Query IO (Surface.Module Name)
-getParsedModule moduleName = do
-  path <- fetch $ ModuleFile moduleName
-  fetch $ ParsedFile path
+getModuleDefines :: Name.Module -> Codebase cdb -> Task Query IO RnMap
+getModuleDefines modName codebase = do
+  case Codebase.lookupModule modName codebase of
+    Nothing -> do
+      pure Map.empty
+    Just (_, rnMap) -> do
+      pure rnMap
 
--- |
-getModuleFile ::
-  Name.Module
-  -> Task Query IO (Either [Error] FilePath)
-getModuleFile moduleName@(Name.Module modNameText) = do
-  files <- fetch InputFiles
-  dirs <- fetch SourceDirectories
-  let
-    candidates =
-      [ candidate
-      | dir <- dirs
-      , let candidate = dir </> joinPath (map Text.unpack $ Text.splitOn "." modNameText)
-      , candidate `HashSet.member` files
-      ]
-  case candidates of
-    [] ->
-      pure $ Left [Error.ModuleNotFound moduleName]
-    [path] ->
-      pure $ Right path
-    path:paths ->
-      pure $ Left [Error.DuplicateModules moduleName (path:paths)]
+type Ingest = forall cdb cdb'.
+  Codebase cdb -> Task Query IO (Maybe [Error], Codebase cdb')
 
--- |
-getParsedFile ::
-  FilePath
-  -> (FilePath -> Text -> Either [Error] (Surface.Module Name))
+ingestDecl :: Name.Module -> Surface.Declaration Name -> Ingest
+ingestDecl modName decl codebase = do
+  pure (Nothing, Codebase.clone codebase)
+  -- TODO: Implement ingestion for pre-parsed declarations.
+
+type ParseModuleSource = Text -> Either [Error] (Surface.Module Name)
+
+parseModuleFile ::
+  (FilePath -> ParseModuleSource)
+  -> FilePath
   -> Task Query IO (Either [Error] (Surface.Module Name))
-getParsedFile path parse_ = do
-  text <- fetch $ FileText path
-  case parse_ path text of
-    Left errs -> pure $ Left errs
-    Right okay -> pure $ Right okay
 
--- |
-getModuleDefines ::
-  Name.Module
-  -> Task Query IO (HashSet Name)
-getModuleDefines moduleName = do
-  undefined
+parseModuleFile parse_ path = do
+  parse_ path <$> fetch (FileText path)
 
--- |
-getModuleDefinitions ::
-  Name.Module
-  -> Task Query IO [Surface.Declaration Name]
-getModuleDefinitions moduleName = do
-  Surface.Module{Surface.decls} <- fetch $ ParsedModule moduleName
-  pure decls
+ingestFile :: FilePath -> Ingest
+ingestFile path codebase = do
+  parsed <- fetch $ ParsedFile path
+  case parsed of
+    Left errs -> pure (Just errs, Codebase.clone codebase)
+    Right (Surface.Module modName decls) -> do
+      let
+        (errs, renamed) = renameMod modName decls
+      case renamed of
+        Nothing -> pure (errs, Codebase.clone codebase)
+        Just (rnMap, renamed') -> do
+          let modRenamed = Surface.Module modName $ map (uncurry Surface.Fun) renamed'
+          pure (errs, Codebase.insertModule modName modRenamed rnMap codebase)
+  where
+    prims = Prim <$> builtins
+
+    renameMod modName decls =
+      case runRename prims (`rename` decls) of
+        This msgs -> (wrapRnMsg modName msgs, Nothing)
+        That result -> (Nothing, Just result)
+        These msgs result -> (wrapRnMsg modName msgs, Just result)
+
+    wrapRnMsg modName msg = Just [Error.Rename modName msg]
+
+    rename inScope decls = renameBinds inScope $ binds [] decls
+
+    binds acc [] = acc
+    binds acc (decl:decls) = case decl of
+      Surface.Fun name term -> binds ((name, term):acc) decls
+      Surface.Sig _name _type -> binds acc decls
+
+ingestDirectory :: FilePath -> Ingest
+ingestDirectory rootPath codebase = do
+  pure (Nothing, Codebase.clone codebase)
+  -- TODO: Implement recursive ingestion for directories.
+
+type Result a = ((a, TaskKind), [Error])
+
+data TaskKind
+  = Input
+  | NonInput
+  deriving (Show)
+
+input :: (Functor m) => m a -> m (Result a)
+input = fmap ((, mempty) . (, Input))
+
+noError :: (Functor m) => m a -> m (Result a)
+noError = fmap ((, mempty) . (, NonInput))
+
+nonInput :: (Functor m) => m (a, [Error]) -> m (Result a)
+nonInput = fmap (first (, NonInput))

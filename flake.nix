@@ -1,29 +1,34 @@
 {
   description = "";
 
-  inputs.nixpkgs.url = "nixpkgs/nixos-25.11";
+  inputs = {
+    getnix.url = "github:exclusive-and/get.nix";
+  };
 
-  outputs = {self, nixpkgs}:
-    let
-      systems = [
-        "x86_64-linux"
-      ];
+  outputs = {
+    self
+  , getnix
+  , nixpkgs
+  }:
+  let
+    systems = [
+      "x86_64-linux"
+    ];
 
-      forAllSystems = nixpkgs.lib.genAttrs systems;
+    forAllSystems = getnix.lib.genAttrs systems;
+  in
+  {
+    packages = forAllSystems (system: {
+      default = import ./. {
+        getnix = getnix.getnix.${system};
+      };
+    });
 
-      main = forAllSystems (
-        system:
-        import ./. {
-          pkgs = nixpkgs.legacyPackages.${system};
-        }
-      );
-    in
-    {
-      packages = forAllSystems (system: main.${system}.outputs);
-      devShells = forAllSystems (
-        system: {
-          default = main.${system}.devShell {};
-        }
-      );
-    };
+    devShells = forAllSystems (system: {
+      default = import ./. {
+        getnix = getnix.getnix.${system};
+        isShell = true;
+      };
+    });
+  };
 }

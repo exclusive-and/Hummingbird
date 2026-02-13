@@ -4,9 +4,6 @@
 
 module Hummingbird.Surface.Layoutize where
 
-import Num
-import Text qualified
-
 import Control.Applicative
 import Control.Monad.Chronicle
 import Data.List.NonEmpty (NonEmpty)
