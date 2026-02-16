@@ -52,15 +52,17 @@ rules readFile_ parse_ (Writer (Writer query)) =
       noError $ pure Codebase.empty
 
     GetModule modName codebase ->
-      noError $ do
-        case Codebase.lookupModule modName codebase of
-          Nothing -> do
-            pure $ Surface.Module modName []
-          Just (foundModule, _) -> do
-            pure foundModule
+      noError $
+      case Codebase.lookupModule modName codebase of
+        Nothing -> do
+          pure $ Surface.Module modName []
+        Just found -> pure $ fst found
 
     ModuleDefines modName codebase ->
-      noError $ getModuleDefines modName codebase
+      noError $
+      case Codebase.lookupModule modName codebase of
+        Nothing -> pure Map.empty
+        Just found -> pure $ snd found
 
     ModuleDefinitions modName codebase ->
       noError $ do
@@ -100,14 +102,6 @@ getFileRope readFile_ path = do
   case result of
     Left rope -> pure rope
     Right text -> undefined
-
-getModuleDefines :: Name.Module -> Codebase cdb -> Task Query IO RnMap
-getModuleDefines modName codebase = do
-  case Codebase.lookupModule modName codebase of
-    Nothing -> do
-      pure Map.empty
-    Just (_, rnMap) -> do
-      pure rnMap
 
 type Ingest = forall cdb cdb'.
   Codebase cdb -> Task Query IO (Maybe [Error], Codebase cdb')
