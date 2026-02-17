@@ -15,7 +15,7 @@ module Num
   Multiplicative ((*), one),
   Ring,
   Distributive,
-  Integral (div, mod, divMod, quot, rem, quotRem),
+  Integral (div, mod, quot, rem, divMod, quotRem),
 
   -- ** Literals
   FromInteger (fromInteger),
@@ -48,7 +48,7 @@ import Prelude hiding (
     abs,
     signum,
     fromInteger),
-  Integral (div, mod, divMod, quot, rem, quotRem),
+  Integral (div, mod, quot, rem, divMod, quotRem),
   Fractional ((/), recip, fromRational),
   )
 
