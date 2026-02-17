@@ -17,6 +17,9 @@ module Num
   Distributive,
   Integral (div, mod, divMod, quot, rem, quotRem),
 
+  -- ** Literals
+  FromInteger (fromInteger),
+
   -- ** Algebraic projections
   Sum (Sum, getSum),
   Product (Product, getProduct),
@@ -25,8 +28,7 @@ module Num
   Fractional ((/), recip),
   Field,
 
-  -- * Built-in number literals
-  FromInteger (fromInteger),
+  -- ** Literals
   FromRational (fromRational),
 
   -- * Comparison and ordering
@@ -258,27 +260,6 @@ deriving via (NumHelper Word16  ) instance (Integral Word16)
 deriving via (NumHelper Word32  ) instance (Integral Word32)
 deriving via (NumHelper Word64  ) instance (Integral Word64)
 
--- | Division
-class (Multiplicative a) => Fractional a where
-  (/) :: a -> a -> a
-
-  -- | The reciprocal of a number. Also called its multiplicative inverse. Equal to @1 / x@.
-  recip :: a -> a
-
-instance (Prelude.Fractional a) => Fractional (NumHelper a) where
-  (/) = coerce @(a -> a -> a) (Prelude./)
-  {-# INLINE (/) #-}
-
-  recip = coerce @(a -> a) Prelude.recip
-  {-# INLINE recip #-}
-
-deriving via (NumHelper Rational) instance (Fractional Rational)
-deriving via (NumHelper Float   ) instance (Fractional Float)
-deriving via (NumHelper Double  ) instance (Fractional Double)
-
--- | Fields (addition, subtraction, multiplication, and division/reciprocals).
-type Field a = (Ring a, Fractional a)
-
 -- | Convert integer literals into other number types.
 class FromInteger a where
   fromInteger :: Integer -> a
@@ -302,6 +283,27 @@ deriving via (NumHelper Word64  ) instance (FromInteger Word64)
 deriving via (NumHelper Rational) instance (FromInteger Rational)
 deriving via (NumHelper Float   ) instance (FromInteger Float)
 deriving via (NumHelper Double  ) instance (FromInteger Double)
+
+-- | Division
+class (Multiplicative a) => Fractional a where
+  (/) :: a -> a -> a
+
+  -- | The reciprocal of a number. Also called its multiplicative inverse. Equal to @1 / x@.
+  recip :: a -> a
+
+instance (Prelude.Fractional a) => Fractional (NumHelper a) where
+  (/) = coerce @(a -> a -> a) (Prelude./)
+  {-# INLINE (/) #-}
+
+  recip = coerce @(a -> a) Prelude.recip
+  {-# INLINE recip #-}
+
+deriving via (NumHelper Rational) instance (Fractional Rational)
+deriving via (NumHelper Float   ) instance (Fractional Float)
+deriving via (NumHelper Double  ) instance (Fractional Double)
+
+-- | Fields (addition, subtraction, multiplication, and division/reciprocals).
+type Field a = (Ring a, Fractional a)
 
 -- | Convert rational literals into other number types.
 class FromRational a where

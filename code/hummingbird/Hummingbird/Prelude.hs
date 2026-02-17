@@ -21,9 +21,12 @@ import Num (
   Additive ((+)),
   Subtractive ((-), negate, abs, signum),
   Multiplicative ((*)),
+  Ring,
+  Distributive,
   Integral (div, mod, divMod, quot, rem, quotRem),
-  Fractional ((/), recip),
   FromInteger (fromInteger),
+  Fractional ((/), recip),
+  Field,
   FromRational (fromRational),
   )
 
