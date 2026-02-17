@@ -19,19 +19,27 @@ import Num (
   Float,
   Double,
   Additive ((+)),
-  Subtractive ((-), negate),
+  Subtractive ((-), negate, abs, signum),
   Multiplicative ((*)),
-  FromInteger (fromInteger),
   Integral (div, mod, divMod, quot, rem, quotRem),
   Fractional ((/), recip),
+  FromInteger (fromInteger),
+  FromRational (fromRational),
   )
 
 import Data.Text as Text (Text)
 import GHC.Generics as Generics (Generic)
 import Prelude hiding (
-  Num (..),
-  Integral (..),
-  Fractional (..),
+  Num (
+    (+),
+    (-),
+    (*),
+    negate,
+    abs,
+    signum,
+    fromInteger),
+  Integral (div, mod, divMod, quot, rem, quotRem),
+  Fractional ((/), recip, fromRational),
   String,
   )
 import Prettyprinter (Pretty (pretty))

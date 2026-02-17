@@ -11,9 +11,8 @@ module Num
 
   -- * Integer arithmetic
   Additive ((+), zero),
-  Subtractive ((-), negate),
+  Subtractive ((-), negate, abs, signum),
   Multiplicative ((*), one),
-  FromInteger (fromInteger),
   Ring,
   Distributive,
   Integral (div, mod, divMod, quot, rem, quotRem),
@@ -26,6 +25,10 @@ module Num
   Fractional ((/), recip),
   Field,
 
+  -- * Built-in number literals
+  FromInteger (fromInteger),
+  FromRational (fromRational),
+
   -- * Comparison and ordering
   Bounded (minBound, maxBound),
   Eq ((==), (/=)),
@@ -35,9 +38,16 @@ module Num
 
 import Prelude qualified
 import Prelude hiding (
-    Num (..),
-    Integral (..),
-    Fractional (..),
+  Num (
+    (+),
+    (-),
+    (*),
+    negate,
+    abs,
+    signum,
+    fromInteger),
+  Integral (div, mod, divMod, quot, rem, quotRem),
+  Fractional ((/), recip, fromRational),
   )
 
 import Data.Coerce (coerce)
@@ -111,12 +121,29 @@ class (Additive a) => Subtractive a where
   -- | Negation of a number.
   negate :: a -> a
 
+  -- | Absolute value.
+  abs :: a -> a
+
+  -- | Representative for the sign of a number.
+  -- We expect that:
+  --
+  -- > abs x * signum x == x
+  --
+  -- For real numbers, 'signum' should be @-1@ (negative), @0@ (zero), or @+1@ (positive).
+  signum :: a -> a
+
 instance (Prelude.Num a) => Subtractive (NumHelper a) where
   (-) = coerce @(a -> a -> a) (Prelude.-)
   {-# INLINE (-) #-}
 
   negate = coerce @(a -> a) Prelude.negate
   {-# INLINE negate #-}
+
+  abs = coerce @(a -> a) Prelude.abs
+  {-# INLINE abs #-}
+
+  signum = coerce @(a -> a) Prelude.signum
+  {-# INLINE signum #-}
 
 deriving via (NumHelper Integer ) instance (Subtractive Integer)
 deriving via (NumHelper Int     ) instance (Subtractive Int)
@@ -179,48 +206,24 @@ deriving instance (Additive a) => Additive (Product a)
 deriving instance (Subtractive a) => Subtractive (Product a)
 deriving instance (Multiplicative a) => Multiplicative (Product a)
 
--- | Convert integer literals into other number types.
-class FromInteger a where
-  fromInteger :: Integer -> a
-
-instance (Prelude.Num a) => FromInteger (NumHelper a) where
-  fromInteger = coerce @(Integer -> a) Prelude.fromInteger
-  {-# INLINE fromInteger #-}
-
-deriving via (NumHelper Integer ) instance (FromInteger Integer)
-deriving via (NumHelper Int     ) instance (FromInteger Int)
-deriving via (NumHelper Int8    ) instance (FromInteger Int8)
-deriving via (NumHelper Int16   ) instance (FromInteger Int16)
-deriving via (NumHelper Int32   ) instance (FromInteger Int32)
-deriving via (NumHelper Int64   ) instance (FromInteger Int64)
-deriving via (NumHelper Natural ) instance (FromInteger Natural)
-deriving via (NumHelper Word    ) instance (FromInteger Word)
-deriving via (NumHelper Word8   ) instance (FromInteger Word8)
-deriving via (NumHelper Word16  ) instance (FromInteger Word16)
-deriving via (NumHelper Word32  ) instance (FromInteger Word32)
-deriving via (NumHelper Word64  ) instance (FromInteger Word64)
-deriving via (NumHelper Rational) instance (FromInteger Rational)
-deriving via (NumHelper Float   ) instance (FromInteger Float)
-deriving via (NumHelper Double  ) instance (FromInteger Double)
-
 -- | Rings (addition, subtraction, and multiplication).
 type Ring a = (Additive a, Subtractive a, Multiplicative a)
 
 -- |
 type Distributive a = (Additive a, Multiplicative a)
 
--- | Integral rings (rings with modular arithmetic)
+-- | Integral numbers
 class (Additive a, Multiplicative a) => Integral a where
   {-# MINIMAL divMod, quotRem #-}
-  
+
   -- | Integer division truncated downward.
   div :: a -> a -> a
   div a b = fst (divMod a b)
-  
+
   -- | Integer modulus.
   mod :: a -> a -> a
   mod a b = snd (divMod a b)
-  
+
   -- | Combined 'div' and 'mod'.
   divMod :: a -> a -> (a, a)
 
@@ -231,7 +234,7 @@ class (Additive a, Multiplicative a) => Integral a where
   -- | Integer remainder truncated toward zero.
   rem :: a -> a -> a
   rem a b = snd (quotRem a b)
-  
+
   -- | Combined 'quot' and 'rem'.
   quotRem :: a -> a -> (a, a)
 
@@ -275,3 +278,39 @@ deriving via (NumHelper Double  ) instance (Fractional Double)
 
 -- | Fields (addition, subtraction, multiplication, and division/reciprocals).
 type Field a = (Ring a, Fractional a)
+
+-- | Convert integer literals into other number types.
+class FromInteger a where
+  fromInteger :: Integer -> a
+
+instance (Prelude.Num a) => FromInteger (NumHelper a) where
+  fromInteger = coerce @(Integer -> a) Prelude.fromInteger
+  {-# INLINE fromInteger #-}
+
+deriving via (NumHelper Integer ) instance (FromInteger Integer)
+deriving via (NumHelper Int     ) instance (FromInteger Int)
+deriving via (NumHelper Int8    ) instance (FromInteger Int8)
+deriving via (NumHelper Int16   ) instance (FromInteger Int16)
+deriving via (NumHelper Int32   ) instance (FromInteger Int32)
+deriving via (NumHelper Int64   ) instance (FromInteger Int64)
+deriving via (NumHelper Natural ) instance (FromInteger Natural)
+deriving via (NumHelper Word    ) instance (FromInteger Word)
+deriving via (NumHelper Word8   ) instance (FromInteger Word8)
+deriving via (NumHelper Word16  ) instance (FromInteger Word16)
+deriving via (NumHelper Word32  ) instance (FromInteger Word32)
+deriving via (NumHelper Word64  ) instance (FromInteger Word64)
+deriving via (NumHelper Rational) instance (FromInteger Rational)
+deriving via (NumHelper Float   ) instance (FromInteger Float)
+deriving via (NumHelper Double  ) instance (FromInteger Double)
+
+-- | Convert rational literals into other number types.
+class FromRational a where
+  fromRational :: Rational -> a
+
+instance (Prelude.Fractional a) => FromRational (NumHelper a) where
+  fromRational = coerce @(Rational -> a) Prelude.fromRational
+  {-# INLINE fromRational #-}
+
+deriving via (NumHelper Rational) instance (FromRational Rational)
+deriving via (NumHelper Float   ) instance (FromRational Float)
+deriving via (NumHelper Double  ) instance (FromRational Double)
