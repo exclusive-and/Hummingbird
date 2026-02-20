@@ -5,9 +5,11 @@ module Num
   Int,
   Natural,
   Word,
+  FromInteger (fromInteger),
   Rational,
   Float,
   Double,
+  FromRational (fromRational),
 
   -- * Integer arithmetic
   Additive ((+), zero),
@@ -17,9 +19,6 @@ module Num
   Distributive,
   Integral (div, mod, quot, rem, divMod, quotRem),
 
-  -- ** Literals
-  FromInteger (fromInteger),
-
   -- ** Algebraic projections
   Sum (Sum, getSum),
   Product (Product, getProduct),
@@ -27,9 +26,6 @@ module Num
   -- * Fractional arithmetic
   Fractional ((/), recip),
   Field,
-
-  -- ** Literals
-  FromRational (fromRational),
 
   -- * Comparison and ordering
   Bounded (minBound, maxBound),

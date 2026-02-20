@@ -15,19 +15,19 @@ import Num (
   Int,
   Natural,
   Word,
+  FromInteger (fromInteger),
   Rational,
   Float,
   Double,
+  FromRational (fromRational),
   Additive ((+)),
   Subtractive ((-), negate, abs, signum),
   Multiplicative ((*)),
   Ring,
   Distributive,
   Integral (div, mod, quot, rem, divMod, quotRem),
-  FromInteger (fromInteger),
   Fractional ((/), recip),
   Field,
-  FromRational (fromRational),
   )
 
 import Data.Text as Text (Text)
