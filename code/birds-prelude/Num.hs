@@ -13,22 +13,16 @@ module Num
 
   -- * Integer arithmetic
   Additive ((+), zero),
+  Sum (Sum, getSum),
   Subtractive ((-), negate, abs, signum),
   Multiplicative ((*), one),
+  Product (Product, getProduct),
   Integral (div, mod, quot, rem, divMod, quotRem),
-
-  -- ** Algebra
   Ring,
   Distributive,
 
-  -- ** Algebraic projections
-  Sum (Sum, getSum),
-  Product (Product, getProduct),
-
   -- * Fractional arithmetic
   Fractional ((/), recip),
-
-  -- ** Algebra
   Field,
 
   -- * Comparison and ordering
