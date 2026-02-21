@@ -199,7 +199,7 @@ word = do
     "of" -> SpecialWord Of
     "record" -> SpecialWord Record
     "where" -> SpecialWord Where
-    _ -> Word (Name.Name str)
+    _ -> Word str
 
 alphanumeric :: Tokenize Text
 alphanumeric = do
@@ -232,5 +232,5 @@ unqualified = Parsec.tokenPrim go
   where
     go token =
       case Located.unLoc token of
-        Word name -> Just name
+        Word name -> Just $ Name.Name name
         _         -> Nothing

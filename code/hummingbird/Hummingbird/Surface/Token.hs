@@ -3,7 +3,7 @@
 {-# Language OverloadedStrings #-}
 
 module Hummingbird.Surface.Token
-  (
+(
   -- * Tokens
   Token (..),
   Keyword (..),
@@ -11,7 +11,7 @@ module Hummingbird.Surface.Token
   -- * Layout
   fromLayout,
   Layoutness (..),
-  ) where
+) where
 
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
@@ -81,7 +81,7 @@ data Token (l :: Layoutness) where
   Underscore :: Token l
 
   -- | A user-defined word.
-  Word :: !Name -> Token l
+  Word :: !Text -> Token l
 
 instance Eq (Token l) where
   ArrowL          == ArrowL           = True
