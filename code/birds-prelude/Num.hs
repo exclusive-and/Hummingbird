@@ -2,22 +2,24 @@ module Num
 (
   -- * Built-in numeric types
   Integer,
+  FromInteger (fromInteger),
   Int,
   Natural,
   Word,
-  FromInteger (fromInteger),
   Rational,
+  FromRational (fromRational),
   Float,
   Double,
-  FromRational (fromRational),
 
   -- * Integer arithmetic
   Additive ((+), zero),
   Subtractive ((-), negate, abs, signum),
   Multiplicative ((*), one),
+  Integral (div, mod, quot, rem, divMod, quotRem),
+
+  -- ** Algebra
   Ring,
   Distributive,
-  Integral (div, mod, quot, rem, divMod, quotRem),
 
   -- ** Algebraic projections
   Sum (Sum, getSum),
@@ -25,6 +27,8 @@ module Num
 
   -- * Fractional arithmetic
   Fractional ((/), recip),
+
+  -- ** Algebra
   Field,
 
   -- * Comparison and ordering
@@ -204,12 +208,6 @@ deriving instance (Additive a) => Additive (Product a)
 deriving instance (Subtractive a) => Subtractive (Product a)
 deriving instance (Multiplicative a) => Multiplicative (Product a)
 
--- | Rings (addition, subtraction, and multiplication).
-type Ring a = (Additive a, Subtractive a, Multiplicative a)
-
--- |
-type Distributive a = (Additive a, Multiplicative a)
-
 -- | Integral numbers
 class (Additive a, Multiplicative a) => Integral a where
   {-# MINIMAL divMod, quotRem #-}
@@ -255,6 +253,12 @@ deriving via (NumHelper Word8   ) instance (Integral Word8)
 deriving via (NumHelper Word16  ) instance (Integral Word16)
 deriving via (NumHelper Word32  ) instance (Integral Word32)
 deriving via (NumHelper Word64  ) instance (Integral Word64)
+
+-- |
+type Distributive a = (Additive a, Multiplicative a)
+
+-- | Rings (addition, subtraction, and multiplication).
+type Ring a = (Additive a, Subtractive a, Multiplicative a)
 
 -- | Convert integer literals into other number types.
 class FromInteger a where

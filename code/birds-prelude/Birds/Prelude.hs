@@ -24,9 +24,9 @@ import Num as Birds.Num (
   Additive ((+)),
   Subtractive ((-), negate, abs, signum),
   Multiplicative ((*)),
+  Integral (div, mod, quot, rem, divMod, quotRem),
   Ring,
   Distributive,
-  Integral (div, mod, quot, rem, divMod, quotRem),
   Fractional ((/), recip),
   Field,
   )
