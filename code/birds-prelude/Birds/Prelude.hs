@@ -1,17 +1,17 @@
 module Birds.Prelude
 (
   -- * Boot imports
-  module Num,
+  module Birds.Num,
 
   -- * Hackage imports
-  module Generics,
+  module Data.String,
+  module Data.Text,
+  module GHC.Generics,
   module Prelude,
   module Prettyprinter,
-  module String,
-  module Text,
 ) where
 
-import Num (
+import Num as Birds.Num (
   Integer,
   Int,
   Natural,
@@ -31,9 +31,9 @@ import Num (
   Field,
   )
 
-import Data.String as String (IsString (fromString))
-import Data.Text as Text (Text)
-import GHC.Generics as Generics (Generic)
+import Data.String (IsString (fromString))
+import Data.Text (Text)
+import GHC.Generics (Generic)
 import Prelude hiding (
   Num (
     (+),
