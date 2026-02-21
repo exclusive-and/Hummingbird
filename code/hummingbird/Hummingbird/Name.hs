@@ -8,17 +8,36 @@ import Data.Text qualified as Text
 
 import Hummingbird.Prelude
 
-newtype Module = Module Text
-  deriving stock (Eq, Ord, Show)
-  deriving newtype (Hashable, IsString, Pretty)
+data Module
+  = Repl
+  | Module Text
+  deriving (Generic, Eq, Ord, Show)
+
+instance Hashable Module
+
+instance IsString Module where
+  fromString = Module . fromString @Text
+
+instance Pretty Module where
+  pretty = \case
+    Repl -> "[REPL]"
+    Module moduleName -> pretty moduleName
 
 newtype Name = Name Text
-  deriving stock (Eq, Ord, Show)
-  deriving newtype (Hashable, IsString, Pretty)
+  deriving stock (Generic, Eq, Ord, Show)
+  deriving newtype (Pretty)
+
+instance Hashable Name
+
+deriving newtype instance IsString Name
 
 newtype Constructor = Constructor Text
-  deriving stock (Eq, Ord, Show)
-  deriving newtype (Hashable, IsString, Pretty)
+  deriving stock (Generic, Eq, Ord, Show)
+  deriving newtype (Pretty)
+
+instance Hashable Constructor
+
+deriving newtype instance IsString Constructor
 
 data Qualified = Qualified {
     moduleName :: !Module,
@@ -26,20 +45,26 @@ data Qualified = Qualified {
   }
   deriving (Generic, Eq, Ord, Show)
 
+instance Hashable Qualified
+
 instance IsString Qualified where
-  fromString s = let
-    t = fromString @Text s
-    (modDot, name) = Text.breakOnEnd "." t
+  fromString str =
+    let
+      text = fromString @Text str
+      (modDot, name) = Text.breakOnEnd "." text
     in
       case Text.stripSuffix "." modDot of
         Nothing ->
-          Qualified (Module mempty) (Name t)
+          Qualified (Module mempty) (Name name)
         Just moduleName ->
           Qualified (Module moduleName) (Name name)
 
 instance Pretty Qualified where
-  pretty (Qualified (Module moduleName) name) =
-    if Text.null moduleName then
-      pretty name
-    else
-      pretty moduleName <> "." <> pretty name
+  pretty = \case
+    Qualified Repl name ->
+      pretty Repl <> "." <> pretty name
+    Qualified (Module moduleName) name ->
+      if Text.null moduleName then
+        pretty name
+      else
+        pretty moduleName <> "." <> pretty name
