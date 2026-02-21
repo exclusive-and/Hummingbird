@@ -4,12 +4,13 @@ module Hummingbird.Tacit
   Alt (LitAlt, ConsAlt),
 ) where
 
+import Birds.Prelude
+
 import Prettyprinter qualified as Pretty
 
 import Hummingbird.Literal (Literal)
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
-import Hummingbird.Prelude
 
 data Term word
   = Lit Literal

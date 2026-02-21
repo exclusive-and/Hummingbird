@@ -1,12 +1,13 @@
 module Hummingbird.Var where
 
+import Birds.Prelude
+
 import Data.Hashable (Hashable)
 import Prettyprinter qualified as Pretty
 
 import Hummingbird.Builtin
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
-import Hummingbird.Prelude
 
 -- |
 data Var

@@ -2,13 +2,14 @@
 
 module Hummingbird.Surface.Layoutize where
 
+import Birds.Prelude
+
 import Control.Applicative
 import Control.Monad.Chronicle
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NonEmpty
 import Text.Parsec qualified
 
-import Hummingbird.Prelude
 import Hummingbird.Surface.Located (
     Located (At),
     Span,

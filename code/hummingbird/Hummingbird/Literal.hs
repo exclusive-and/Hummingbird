@@ -1,9 +1,9 @@
 module Hummingbird.Literal where
 
+import Birds.Prelude
+
 import Data.Char
 import Prettyprinter qualified as Pretty
-
-import Hummingbird.Prelude
 
 -- |
 data Literal

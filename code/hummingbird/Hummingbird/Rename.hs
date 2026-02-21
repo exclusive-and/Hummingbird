@@ -23,6 +23,8 @@ module Hummingbird.Rename
   runRename,
 ) where
 
+import Birds.Prelude
+
 import Control.Monad.Chronicle
 import Control.Monad.State
 import Control.Monad.Trans
@@ -37,7 +39,6 @@ import Prettyprinter qualified as Pretty
 import Hummingbird.Builtin
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
-import Hummingbird.Prelude
 import Hummingbird.Surface
 import Hummingbird.Var
 import Hummingbird.VarMap (VarMap)

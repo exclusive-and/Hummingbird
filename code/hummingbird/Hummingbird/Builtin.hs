@@ -1,12 +1,13 @@
 module Hummingbird.Builtin where
 
+import Birds.Prelude
+
 import Data.Hashable
 import Data.Map (Map)
 import Data.Map qualified as Map
 
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
-import Hummingbird.Prelude
 
 data Builtin
   = Cat

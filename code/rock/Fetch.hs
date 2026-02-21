@@ -26,7 +26,7 @@ module Fetch
   handle,
 ) where
 
-import Prelude
+import Birds.Prelude
 
 import Control.Monad
 import Control.Monad.Fix

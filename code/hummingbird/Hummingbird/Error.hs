@@ -1,11 +1,12 @@
 module Hummingbird.Error where
 
+import Birds.Prelude
+
 import Control.Exception (Exception)
 import Prettyprinter qualified as Pretty
 
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
-import Hummingbird.Prelude
 import Hummingbird.Rename (RenameMessage)
 
 data Error

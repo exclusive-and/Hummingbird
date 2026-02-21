@@ -1,11 +1,12 @@
 module Hummingbird.Surface where
 
+import Birds.Prelude
+
 import Prettyprinter qualified as Pretty
 
 import Hummingbird.Literal (Literal)
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
-import Hummingbird.Prelude
 
 data Module word = Module {
     name :: !Name.Module,

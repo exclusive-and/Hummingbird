@@ -1,9 +1,9 @@
 module Hummingbird.Name where
 
+import Birds.Prelude
+
 import Data.Hashable
 import Data.Text qualified as Text
-
-import Hummingbird.Prelude
 
 data Module
   = Repl

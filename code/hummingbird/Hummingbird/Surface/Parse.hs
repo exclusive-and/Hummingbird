@@ -1,12 +1,13 @@
 module Hummingbird.Surface.Parse where
 
+import Birds.Prelude
+
 import Control.Applicative
 import Control.Monad
 import Data.Coerce (coerce)
 
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
-import Hummingbird.Prelude
 import Hummingbird.Surface qualified as Surface
 import Hummingbird.Surface.Located (Located)
 import Hummingbird.Surface.Located qualified as Located

@@ -1,7 +1,6 @@
 module Fetch.Mapped where
 
-import Num
-import Prelude
+import Birds.Prelude
 
 import Data.Hashable
 import Data.HashMap.Lazy (HashMap)

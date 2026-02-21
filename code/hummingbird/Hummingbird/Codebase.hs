@@ -4,12 +4,13 @@
 
 module Hummingbird.Codebase where
 
+import Birds.Prelude
+
 import Data.Map (Map)
 import Data.Map qualified as Map
 
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
-import Hummingbird.Prelude
 import Hummingbird.Rename (RnMap)
 import Hummingbird.Surface qualified as Surface
 import Hummingbird.Var (Var)

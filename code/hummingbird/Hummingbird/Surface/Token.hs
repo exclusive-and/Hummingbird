@@ -9,10 +9,12 @@ module Hummingbird.Surface.Token
   Layoutness (..),
 ) where
 
+import Birds.Prelude
+
+import Prettyprinter as Pretty
+
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
-import Hummingbird.Prelude
-import Prettyprinter as Pretty
 
 data Token (l :: Layoutness) where
 

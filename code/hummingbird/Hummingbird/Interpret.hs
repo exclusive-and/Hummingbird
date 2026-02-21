@@ -1,5 +1,7 @@
 module Hummingbird.Interpret where
 
+import Birds.Prelude
+
 import Control.Monad.Trans
 import Control.Monad.State
 import Data.Foldable
@@ -8,7 +10,6 @@ import Data.Map (Map)
 import Data.Map qualified
 
 import Hummingbird.Builtin
-import Hummingbird.Prelude
 import Hummingbird.Rename
 import Hummingbird.Surface qualified as Surface
 import Hummingbird.Var

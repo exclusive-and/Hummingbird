@@ -1,4 +1,4 @@
-module Hummingbird.Prelude
+module Birds.Prelude
 (
   -- * Boot imports
   module Num,

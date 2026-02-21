@@ -9,12 +9,17 @@ module Hummingbird.VarMap
   toList,
 ) where
 
+import Birds.Prelude hiding (
+    empty,
+    lookup,
+    toList,
+  )
+
 import Data.IntMap (IntMap)
 import Data.IntMap qualified as IntMap
 import Data.Map (Map)
 import Data.Map qualified as Map
 
-import Hummingbird.Prelude hiding (empty, lookup, toList)
 import Hummingbird.Var
 
 -- |

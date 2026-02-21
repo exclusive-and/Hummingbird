@@ -1,5 +1,7 @@
 module Hummingbird.Dialectica where
 
+import Birds.Prelude
+
 import Control.Monad
 import Control.Monad.Trans
 import Data.Bifunctor
@@ -31,7 +33,6 @@ import Hummingbird.Error (Error)
 import Hummingbird.Error qualified as Error
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
-import Hummingbird.Prelude
 import Hummingbird.Query (Query (..))
 import Hummingbird.Rename (RnMap, runRename, renameBinds)
 import Hummingbird.Surface qualified as Surface

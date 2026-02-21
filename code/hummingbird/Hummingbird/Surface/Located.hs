@@ -2,9 +2,9 @@
 
 module Hummingbird.Surface.Located where
 
-import Prettyprinter qualified as Pretty
+import Birds.Prelude
 
-import Hummingbird.Prelude
+import Prettyprinter qualified as Pretty
 
 data Located a = At Span a
 

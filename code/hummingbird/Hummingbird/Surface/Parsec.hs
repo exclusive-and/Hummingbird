@@ -66,6 +66,8 @@ module Hummingbird.Surface.Parsec
 )
 where
 
+import Birds.Prelude
+
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Text.Parsec (Parsec, ParsecT)
@@ -83,7 +85,6 @@ import Text.Parsec.Pos (
 import Text.Parsec.Pos qualified as Parsec
 
 import Hummingbird.Name (Name)
-import Hummingbird.Prelude
 import Hummingbird.Surface.Located (
     Located (At),
     unLoc,

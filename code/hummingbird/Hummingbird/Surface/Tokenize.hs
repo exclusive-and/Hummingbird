@@ -23,6 +23,8 @@ module Hummingbird.Surface.Tokenize
 )
 where
 
+import Birds.Prelude
+
 import Control.Applicative
 import Control.Monad.Chronicle
 import Data.Char
@@ -33,7 +35,6 @@ import Text.Parsec qualified
 
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
-import Hummingbird.Prelude
 import Hummingbird.Surface.Located (Located (..))
 import Hummingbird.Surface.Located qualified as Located
 import Hummingbird.Surface.Parsec (

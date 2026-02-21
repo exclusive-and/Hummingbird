@@ -4,6 +4,8 @@
 
 module Hummingbird.Main where
 
+import Birds.Prelude
+
 import Control.Applicative
 import Control.Exception
 import Control.Monad
@@ -35,7 +37,6 @@ import Hummingbird.Error (Error)
 import Hummingbird.Error qualified as Error
 import Hummingbird.Interpret (interpret)
 import Hummingbird.Name qualified as Name
-import Hummingbird.Prelude
 import Hummingbird.Surface qualified as Hb
 import Hummingbird.Surface.Layoutize
 import Hummingbird.Surface.Parse

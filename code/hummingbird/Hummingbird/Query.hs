@@ -1,5 +1,7 @@
 module Hummingbird.Query where
 
+import Birds.Prelude
+
 import Data.Hashable
 import Data.HashSet (HashSet)
 import Data.Kind
@@ -11,7 +13,6 @@ import Hummingbird.Codebase (Codebase)
 import Hummingbird.Error (Error)
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
-import Hummingbird.Prelude
 import Hummingbird.Rename (RnMap)
 import Hummingbird.Surface qualified as Surface
 import Hummingbird.Var (Var)
