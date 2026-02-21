@@ -1,6 +1,3 @@
-{-# Language DataKinds #-}
-{-# Language GADTs #-}
-{-# Language OverloadedStrings #-}
 {-# Language RecordWildCards #-}
 
 module Hummingbird.Surface.Parsec

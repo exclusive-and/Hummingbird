@@ -1,5 +1,3 @@
-{-# Language OverloadedStrings #-}
-
 module Hummingbird.Error where
 
 import Control.Exception (Exception)

@@ -1,7 +1,3 @@
-{-# Language DataKinds #-}
-{-# Language GADTs #-}
-{-# Language OverloadedStrings #-}
-
 module Hummingbird.Surface.Token
 (
   -- * Tokens

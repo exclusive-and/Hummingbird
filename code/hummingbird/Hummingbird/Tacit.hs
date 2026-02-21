@@ -1,11 +1,8 @@
-{-# Language OverloadedStrings #-}
-
 module Hummingbird.Tacit
 (
   Term (..),
   Alt (LitAlt, ConsAlt),
-)
-where
+) where
 
 import Prettyprinter qualified as Pretty
 

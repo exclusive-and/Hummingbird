@@ -1,5 +1,3 @@
-{-# Language DataKinds #-}
-{-# Language FunctionalDependencies #-}
 {-# Language PolyKinds #-}
 {-# Language UndecidableInstances #-}
 

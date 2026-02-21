@@ -1,9 +1,6 @@
-{-# Language OverloadedStrings #-}
-
 module Hummingbird.Name where
 
 import Data.Hashable
-import Data.String (IsString (fromString))
 import Data.Text qualified as Text
 
 import Hummingbird.Prelude

@@ -7,6 +7,7 @@ module Hummingbird.Prelude
   module Generics,
   module Prelude,
   module Prettyprinter,
+  module String,
   module Text,
 ) where
 
@@ -30,6 +31,7 @@ import Num (
   Field,
   )
 
+import Data.String as String (IsString (fromString))
 import Data.Text as Text (Text)
 import GHC.Generics as Generics (Generic)
 import Prelude hiding (

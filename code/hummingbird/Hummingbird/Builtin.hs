@@ -1,5 +1,3 @@
-{-# Language OverloadedStrings #-}
-
 module Hummingbird.Builtin where
 
 import Data.Hashable

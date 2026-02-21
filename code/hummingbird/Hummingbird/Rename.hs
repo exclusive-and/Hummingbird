@@ -1,7 +1,4 @@
-{-# Language GeneralizedNewtypeDeriving #-}
-{-# Language OverloadedStrings #-}
 {-# Language RecordWildCards #-}
-{-# Language StandaloneDeriving #-}
 
 module Hummingbird.Rename
 (

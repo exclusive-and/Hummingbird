@@ -1,6 +1,4 @@
-{-# Language NamedFieldPuns #-}
 {-# Language OverloadedRecordDot #-}
-{-# Language OverloadedStrings #-}
 
 module Hummingbird.Surface.Located where
 

@@ -1,5 +1,3 @@
-{-# Language DataKinds #-}
-{-# Language GADTs #-}
 {-# Language NamedFieldPuns #-}
 
 module Hummingbird.Surface.Layoutize where

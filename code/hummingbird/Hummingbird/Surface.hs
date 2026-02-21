@@ -1,5 +1,3 @@
-{-# Language OverloadedStrings #-}
-
 module Hummingbird.Surface where
 
 import Prettyprinter qualified as Pretty

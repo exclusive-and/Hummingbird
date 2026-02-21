@@ -1,6 +1,3 @@
-{-# Language DeriveTraversable #-}
-{-# Language GeneralizedNewtypeDeriving #-}
-
 module Hummingbird.VarMap
 (
   VarMap,
