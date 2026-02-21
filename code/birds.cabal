@@ -57,8 +57,9 @@ library birds-prelude
   build-depends:
     , base ^>= 4.21
     , containers
-    , text
+    , hashable
     , prettyprinter
+    , text
 
 executable hummingbird-cli
   main-is: hummingbird/app/Main.hs

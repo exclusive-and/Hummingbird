@@ -47,6 +47,7 @@ import Prelude hiding (
   )
 
 import Data.Coerce (coerce)
+import Data.Hashable (Hashable)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Word (Word8, Word16, Word32, Word64)
 import GHC.Generics (Generic)
@@ -91,7 +92,9 @@ deriving via (NumHelper Double  ) instance (Additive Double)
 
 -- |
 newtype Sum a = Sum { getSum :: a }
-  deriving (Bounded, Eq, Generic, Ord, Read, Show)
+  deriving (Generic, Bounded, Eq, Ord, Read, Show)
+
+instance (Hashable a) => Hashable (Sum a)   
 
 instance Functor Sum where
   fmap = coerce
@@ -183,7 +186,9 @@ deriving via (NumHelper Double  ) instance (Multiplicative Double)
 
 -- |
 newtype Product a = Product { getProduct :: a }
-  deriving (Bounded, Eq, Generic, Ord, Read, Show)
+  deriving (Generic, Bounded, Eq, Ord, Read, Show)
+
+instance (Hashable a) => Hashable (Product a)
 
 instance Functor Product where
   fmap = coerce
