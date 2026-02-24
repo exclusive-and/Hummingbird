@@ -1,29 +1,36 @@
 module Birds.Prelude.Num
 (
-  -- * Built-in numeric types
+  -- * Rings and integers
+  Ring,
+  Int,
   Integer,
   FromInteger (fromInteger),
-  Int,
-  Natural,
   Word,
+  Natural,
+
+  -- * Addition
+  Additive ((+)),
+  Sum (Sum, getSum),
+
+  -- * Subtraction
+  Subtractive ((-), negate, abs, signum),
+
+  -- * Multiplication
+  Multiplicative ((*)),
+  Distributive,
+  Product (Product, getProduct),
+  
+  -- * Division
+  Fractional ((/), recip),
+  -- ** Integer quotient and remainders
+  Integral (div, mod, quot, rem, divMod, quotRem),
+
+  -- * Fields and rationals
+  Field,
   Rational,
   FromRational (fromRational),
   Float,
   Double,
-
-  -- * Integer arithmetic
-  Additive ((+), zero),
-  Sum (Sum, getSum),
-  Subtractive ((-), negate, abs, signum),
-  Multiplicative ((*), one),
-  Product (Product, getProduct),
-  Integral (div, mod, quot, rem, divMod, quotRem),
-  Ring,
-  Distributive,
-
-  -- * Fractional arithmetic
-  Fractional ((/), recip),
-  Field,
 
   -- * Comparison and ordering
   Bounded (minBound, maxBound),
