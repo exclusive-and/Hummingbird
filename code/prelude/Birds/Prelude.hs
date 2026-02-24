@@ -1,9 +1,6 @@
 module Birds.Prelude
 (
-  -- * Boot imports
-  module Birds.Num,
-
-  -- * Hackage imports
+  module Birds.Prelude.Num,
   module Data.String,
   module Data.Text,
   module GHC.Generics,
@@ -11,7 +8,7 @@ module Birds.Prelude
   module Prettyprinter,
 ) where
 
-import Num as Birds.Num (
+import Birds.Prelude.Num (
   Integer,
   Int,
   Natural,

@@ -44,16 +44,16 @@ library
   hs-source-dirs: birds
   build-depends:
     , base ^>= 4.21
-    , birds:birds-prelude
+    , birds:prelude
     , containers
 
-library birds-prelude
+library prelude
   import: common-language
   exposed-modules:
     Birds.Prelude
+    Birds.Prelude.Num
     Data.Map.Justified
-    Num
-  hs-source-dirs: birds-prelude
+  hs-source-dirs: prelude
   build-depends:
     , base ^>= 4.21
     , containers
@@ -98,7 +98,7 @@ library hummingbird
   hs-source-dirs: hummingbird
   build-depends:
     , base ^>= 4.21
-    , birds:birds-prelude
+    , birds:prelude
     , birds:rock
     , containers
     , filepath
@@ -124,7 +124,7 @@ library rock
   hs-source-dirs: rock
   build-depends:
     , base ^>= 4.21
-    , birds:birds-prelude
+    , birds:prelude
     , containers
     , hashable
     , monad-chronicle

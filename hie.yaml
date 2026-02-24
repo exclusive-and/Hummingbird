@@ -2,12 +2,12 @@ cradle:
   cabal:
     - path: "code/birds"
       component: "lib:birds"
-    - path: "code/birds-prelude"
-      component: "birds:lib:birds-prelude"
     - path: "code/hummingbird"
       component: "birds:lib:hummingbird"
     - path: "code/hummingbird/app"
       component: "birds:exe:hummingbird-cli"
+    - path: "code/prelude"
+      component: "birds:lib:prelude"
     - path: "code/rock"
       component: "birds:lib:rock"
       

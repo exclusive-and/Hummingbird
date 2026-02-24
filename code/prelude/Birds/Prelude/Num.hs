@@ -1,4 +1,4 @@
-module Num
+module Birds.Prelude.Num
 (
   -- * Built-in numeric types
   Integer,
