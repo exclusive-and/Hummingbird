@@ -55,7 +55,7 @@ import Numeric.Natural (Natural)
 
 infixl 6 +, -
 infixl 7 *
-infixl 7 `div`, `mod`
+infixl 7 /, `div`, `mod`, `quot`, `rem`
 
 -- | Internal helper type for deriving arithmetic instances from Prelude.
 newtype NumHelper a = NumHelper a
