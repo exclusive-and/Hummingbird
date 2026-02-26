@@ -2,35 +2,50 @@ module Birds.Prelude
 (
   -- * Numbers
 
-  -- ** Rings and integers
+  -- ** Integers
   Ring,
   Int,
   Integer,
   FromInteger (fromInteger),
+  Distributive,
   Word,
   Natural,
 
-  -- ** Addition
-  Additive ((+)),
-  Sum (Sum, getSum),
-
-  -- ** Subtraction
-  Subtractive ((-), negate, abs, signum),
-
-  -- ** Multiplication
-  Multiplicative ((*)),
-  Product (Product, getProduct),
-  -- ** Division
-  Fractional ((/), recip),
-  -- *** Integer quotient and remainders
-  Integral (div, mod, quot, rem, divMod, quotRem),
-
-  -- ** Fields and rationals
+  -- ** Rational numbers
   Field,
   Rational,
   FromRational (fromRational),
   Float,
   Double,
+
+  -- ** Addition
+  Additive ((+)),
+  sum,
+  Sum (Sum, getSum),
+  
+  -- ** Subtraction
+  Subtractive
+    ( (-)
+    , negate
+    , abs
+    , signum ),
+  
+  -- ** Multiplication
+  Multiplicative ((*)),
+  product,
+  Product (Product, getProduct),
+
+  -- ** Division
+  Fractional ((/), recip),
+  
+  -- *** Integer quotient and remainders
+  Integral
+    ( div
+    , mod
+    , divMod
+    , quot
+    , rem
+    , quotRem ),
 
   module Data.String,
   module Data.Text,
@@ -46,22 +61,17 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Prelude hiding (
   Int,
-  Word,
   Integer,
+  Word,
   Natural,
-  Num (
-    (+),
-    (-),
-    (*),
-    negate,
-    abs,
-    signum,
-    fromInteger),
-  Integral (div, mod, quot, rem, divMod, quotRem),
+  Rational,
   Float,
   Double,
-  Rational,
-  Fractional ((/), recip, fromRational),
+  Num (..),
+  sum,
+  product,
+  Integral (..),
+  Fractional (..),
   String,
   )
 import Prettyprinter (Pretty (pretty))

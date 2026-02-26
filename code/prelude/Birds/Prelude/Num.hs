@@ -1,71 +1,84 @@
 module Birds.Prelude.Num
 (
-  -- * Rings and integers
+  -- * Rings
   Ring,
   Int,
   Integer,
-  FromInteger (fromInteger),
+  FromInteger (..),
+  Distributive,
   Word,
   Natural,
 
-  -- * Addition
-  Additive ((+)),
-  Sum (Sum, getSum),
-
-  -- * Subtraction
-  Subtractive ((-), negate, abs, signum),
-
-  -- * Multiplication
-  Multiplicative ((*)),
-  Distributive,
-  Product (Product, getProduct),
-  
-  -- * Division
-  Fractional ((/), recip),
-  -- ** Integer quotient and remainders
-  Integral (div, mod, quot, rem, divMod, quotRem),
-
-  -- * Fields and rationals
+  -- * Fields
   Field,
   Rational,
-  FromRational (fromRational),
+  FromRational (..),
   Float,
   Double,
 
-  -- * Comparison and ordering
-  Bounded (minBound, maxBound),
-  Eq ((==), (/=)),
-  Ordering (LT, EQ, GT),
-  Ord (compare, (<), (<=), (>=), (>), max, min),
+  -- * Addition
+  Additive (..),
+  sum,
+  Sum (..),
+
+  -- * Subtraction
+  Subtractive (..),
+  
+  -- * Multiplication
+  Multiplicative (..),
+  product,
+  Product (..),
+
+  -- * Division
+  Fractional (..),
+  -- ** Integer quotient and remainders
+  Integral (..),
 ) where
 
-import Prelude qualified
-import Prelude hiding (
-  Num (
-    (+),
-    (-),
-    (*),
-    negate,
-    abs,
-    signum,
-    fromInteger),
-  Integral (div, mod, quot, rem, divMod, quotRem),
-  Fractional ((/), recip, fromRational),
-  )
-
+import Control.Applicative
+import Data.Bounded
 import Data.Coerce (coerce)
-import Data.Hashable (Hashable)
-import Data.Int (Int8, Int16, Int32, Int64)
-import Data.Word (Word8, Word16, Word32, Word64)
+import Data.Eq
+import Data.Foldable (Foldable (foldMap))
+import Data.Function
+import Data.Functor
+import Data.Hashable
+import Data.Int
+import Data.Monoid (Monoid (..))
+import Data.Ord (Ord)
+import Data.Ratio (Rational)
+import Data.Semigroup (Semigroup (..))
+import Data.Tuple
+import Data.Word
+import GHC.Float (Double, Float)
 import GHC.Generics (Generic)
+import GHC.Integer (Integer)
 import Numeric.Natural (Natural)
+import Prelude qualified
 
 infixl 6 +, -
 infixl 7 *
 infixl 7 /, `div`, `mod`, `quot`, `rem`
 
--- | Internal helper type for deriving arithmetic instances from Prelude.
+-- | Internal helper type for deriving arithmetic instances
+-- from Prelude.
 newtype NumHelper a = NumHelper a
+
+-- | '+', '-', and '*'.
+type Ring a =
+  (Additive a, Subtractive a, Multiplicative a)
+
+-- | '+' and '*'.
+--
+-- This catches some important numbers that are almost
+-- full-fledged rings, but not quite.
+-- Notably, the natural numbers (i.e. positive integers) land here.
+type Distributive a =
+  (Additive a, Multiplicative a)
+
+-- | '+', '-', '*', and '/'.
+type Field a =
+  (Additive a, Subtractive a, Multiplicative a, Fractional a)
 
 -- | Addition
 class Additive a where
@@ -74,21 +87,25 @@ class Additive a where
   -- | Additive identity: does nothing when added to @x@.
   zero :: a
 
+-- |
+sum :: (Additive a, Foldable t) => t a -> a
+sum = getSum . foldMap Sum
+
 instance (Prelude.Num a) => Additive (NumHelper a) where
-  (+) = coerce @(a -> a -> a) (Prelude.+)
+  (+) = coerce ((Prelude.+) @a)
   {-# INLINE (+) #-}
 
   zero = NumHelper 0
   {-# INLINE zero #-}
 
-deriving via (NumHelper Integer ) instance (Additive Integer)
 deriving via (NumHelper Int     ) instance (Additive Int)
+deriving via (NumHelper Integer ) instance (Additive Integer)
 deriving via (NumHelper Int8    ) instance (Additive Int8)
 deriving via (NumHelper Int16   ) instance (Additive Int16)
 deriving via (NumHelper Int32   ) instance (Additive Int32)
 deriving via (NumHelper Int64   ) instance (Additive Int64)
-deriving via (NumHelper Natural ) instance (Additive Natural)
 deriving via (NumHelper Word    ) instance (Additive Word)
+deriving via (NumHelper Natural ) instance (Additive Natural)
 deriving via (NumHelper Word8   ) instance (Additive Word8)
 deriving via (NumHelper Word16  ) instance (Additive Word16)
 deriving via (NumHelper Word32  ) instance (Additive Word32)
@@ -99,7 +116,14 @@ deriving via (NumHelper Double  ) instance (Additive Double)
 
 -- |
 newtype Sum a = Sum { getSum :: a }
-  deriving (Generic, Bounded, Eq, Ord, Read, Show)
+  deriving
+    ( Bounded
+    , Eq
+    , Generic
+    , Ord
+    , Prelude.Read
+    , Prelude.Show
+    )
 
 instance (Hashable a) => Hashable (Sum a)   
 
@@ -111,10 +135,10 @@ instance Applicative Sum where
   (<*>) = coerce
 
 instance (Additive a) => Semigroup (Sum a) where
-  Sum a <> Sum b = Sum (a + b)
+  (<>) = coerce ((+) @a)
 
 instance (Additive a) => Monoid (Sum a) where
-  mempty = Sum zero
+  mempty = coerce (zero @a)
 
 deriving instance (Additive a) => Additive (Sum a)
 deriving instance (Subtractive a) => Subtractive (Sum a)
@@ -139,20 +163,20 @@ class (Additive a) => Subtractive a where
   signum :: a -> a
 
 instance (Prelude.Num a) => Subtractive (NumHelper a) where
-  (-) = coerce @(a -> a -> a) (Prelude.-)
+  (-) = coerce ((Prelude.-) @a)
   {-# INLINE (-) #-}
 
-  negate = coerce @(a -> a) Prelude.negate
+  negate = coerce (Prelude.negate @a)
   {-# INLINE negate #-}
 
-  abs = coerce @(a -> a) Prelude.abs
+  abs = coerce (Prelude.abs @a)
   {-# INLINE abs #-}
 
-  signum = coerce @(a -> a) Prelude.signum
+  signum = coerce (Prelude.signum @a)
   {-# INLINE signum #-}
 
-deriving via (NumHelper Integer ) instance (Subtractive Integer)
 deriving via (NumHelper Int     ) instance (Subtractive Int)
+deriving via (NumHelper Integer ) instance (Subtractive Integer)
 deriving via (NumHelper Int8    ) instance (Subtractive Int8)
 deriving via (NumHelper Int16   ) instance (Subtractive Int16)
 deriving via (NumHelper Int32   ) instance (Subtractive Int32)
@@ -168,15 +192,19 @@ class Multiplicative a where
   -- | Multiplicative identity: does nothing when multiplied by @x@.
   one :: a
 
+-- |
+product :: (Multiplicative a, Foldable t) => t a -> a
+product = getProduct . foldMap Product
+
 instance (Prelude.Num a) => Multiplicative (NumHelper a) where
-  (*) = coerce @(a -> a -> a) (Prelude.*)
+  (*) = coerce ((Prelude.*) @a)
   {-# INLINE (*) #-}
 
   one = NumHelper 1
   {-# INLINE one #-}
 
-deriving via (NumHelper Integer ) instance (Multiplicative Integer)
 deriving via (NumHelper Int     ) instance (Multiplicative Int)
+deriving via (NumHelper Integer ) instance (Multiplicative Integer)
 deriving via (NumHelper Int8    ) instance (Multiplicative Int8)
 deriving via (NumHelper Int16   ) instance (Multiplicative Int16)
 deriving via (NumHelper Int32   ) instance (Multiplicative Int32)
@@ -193,7 +221,14 @@ deriving via (NumHelper Double  ) instance (Multiplicative Double)
 
 -- |
 newtype Product a = Product { getProduct :: a }
-  deriving (Generic, Bounded, Eq, Ord, Read, Show)
+  deriving
+    ( Bounded
+    , Eq
+    , Generic
+    , Ord
+    , Prelude.Read
+    , Prelude.Show
+    )
 
 instance (Hashable a) => Hashable (Product a)
 
@@ -205,10 +240,10 @@ instance Applicative Product where
   (<*>) = coerce
 
 instance (Multiplicative a) => Semigroup (Product a) where
-  Product a <> Product b = Product (a * b)
+  (<>) = coerce ((*) @a)
 
 instance (Multiplicative a) => Monoid (Product a) where
-  mempty = Product one
+  mempty = coerce (one @a)
 
 deriving instance (Additive a) => Additive (Product a)
 deriving instance (Subtractive a) => Subtractive (Product a)
@@ -241,14 +276,14 @@ class (Additive a, Multiplicative a) => Integral a where
   quotRem :: a -> a -> (a, a)
 
 instance (Prelude.Integral a) => Integral (NumHelper a) where
-  divMod = coerce @(a -> a -> (a, a)) Prelude.divMod
+  divMod = coerce (Prelude.divMod @a)
   {-# INLINE divMod #-}
 
-  quotRem = coerce @(a -> a -> (a, a)) Prelude.quotRem
+  quotRem = coerce (Prelude.quotRem @a)
   {-# INLINE quotRem #-}
 
-deriving via (NumHelper Integer ) instance (Integral Integer)
 deriving via (NumHelper Int     ) instance (Integral Int)
+deriving via (NumHelper Integer ) instance (Integral Integer)
 deriving via (NumHelper Int8    ) instance (Integral Int8)
 deriving via (NumHelper Int16   ) instance (Integral Int16)
 deriving via (NumHelper Int32   ) instance (Integral Int32)
@@ -260,22 +295,16 @@ deriving via (NumHelper Word16  ) instance (Integral Word16)
 deriving via (NumHelper Word32  ) instance (Integral Word32)
 deriving via (NumHelper Word64  ) instance (Integral Word64)
 
--- |
-type Distributive a = (Additive a, Multiplicative a)
-
--- | Rings (addition, subtraction, and multiplication).
-type Ring a = (Additive a, Subtractive a, Multiplicative a)
-
 -- | Convert integer literals into other number types.
 class FromInteger a where
   fromInteger :: Integer -> a
 
 instance (Prelude.Num a) => FromInteger (NumHelper a) where
-  fromInteger = coerce @(Integer -> a) Prelude.fromInteger
+  fromInteger = coerce (Prelude.fromInteger @a)
   {-# INLINE fromInteger #-}
 
-deriving via (NumHelper Integer ) instance (FromInteger Integer)
 deriving via (NumHelper Int     ) instance (FromInteger Int)
+deriving via (NumHelper Integer ) instance (FromInteger Integer)
 deriving via (NumHelper Int8    ) instance (FromInteger Int8)
 deriving via (NumHelper Int16   ) instance (FromInteger Int16)
 deriving via (NumHelper Int32   ) instance (FromInteger Int32)
@@ -296,27 +325,25 @@ class (Multiplicative a) => Fractional a where
 
   -- | The reciprocal of a number. Also called its multiplicative inverse. Equal to @1 / x@.
   recip :: a -> a
+  recip x = one / x
 
 instance (Prelude.Fractional a) => Fractional (NumHelper a) where
-  (/) = coerce @(a -> a -> a) (Prelude./)
+  (/) = coerce ((Prelude./) @a)
   {-# INLINE (/) #-}
 
-  recip = coerce @(a -> a) Prelude.recip
+  recip = coerce (Prelude.recip @a)
   {-# INLINE recip #-}
 
 deriving via (NumHelper Rational) instance (Fractional Rational)
 deriving via (NumHelper Float   ) instance (Fractional Float)
 deriving via (NumHelper Double  ) instance (Fractional Double)
 
--- | Fields (addition, subtraction, multiplication, and division/reciprocals).
-type Field a = (Ring a, Fractional a)
-
 -- | Convert rational literals into other number types.
 class FromRational a where
   fromRational :: Rational -> a
 
 instance (Prelude.Fractional a) => FromRational (NumHelper a) where
-  fromRational = coerce @(Rational -> a) Prelude.fromRational
+  fromRational = coerce (Prelude.fromRational @a)
   {-# INLINE fromRational #-}
 
 deriving via (NumHelper Rational) instance (FromRational Rational)
