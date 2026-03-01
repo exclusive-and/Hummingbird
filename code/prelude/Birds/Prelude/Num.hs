@@ -1,38 +1,53 @@
 module Birds.Prelude.Num
 (
-  -- * Rings
+  -- * Numbers
   Ring,
+  Distributive,
+  Field,
+
+  -- ** Number systems
+
+  -- *** Integers
   Int,
   Integer,
-  FromInteger (..),
-  Distributive,
+  FromInteger (fromInteger),
   Word,
   Natural,
 
-  -- * Fields
-  Field,
+  -- *** Rational numbers
   Rational,
-  FromRational (..),
+  FromRational (fromRational),
   Float,
   Double,
 
-  -- * Addition
-  Additive (..),
+  -- ** Addition
+  Additive ((+), zero),
   sum,
-  Sum (..),
-
-  -- * Subtraction
-  Subtractive (..),
+  Sum (Sum, getSum),
   
-  -- * Multiplication
-  Multiplicative (..),
+  -- ** Subtraction
+  Subtractive
+    ( (-)
+    , negate
+    , abs
+    , signum ),
+  
+  -- ** Multiplication
+  Multiplicative ((*), one),
   product,
-  Product (..),
+  Product (Product, getProduct),
 
-  -- * Division
-  Fractional (..),
-  -- ** Integer quotient and remainders
-  Integral (..),
+  -- ** Division
+  Fractional ((/), recip),
+  
+  -- *** Integer quotient and remainders
+  Integral
+    ( div
+    , mod
+    , divMod
+    , quot
+    , rem
+    , quotRem ),
 ) where
 
 import Control.Applicative
@@ -64,11 +79,13 @@ infixl 7 /, `div`, `mod`, `quot`, `rem`
 -- from Prelude.
 newtype NumHelper a = NumHelper a
 
--- | '+', '-', and '*'.
+-- | @'(+)'@, @'(-)'@, and @'(*)'@.
+--
+-- The @'Ring'@ constraint is analogous to @'Prelude.Num'@.
 type Ring a =
   (Additive a, Subtractive a, Multiplicative a)
 
--- | '+' and '*'.
+-- | @'(+)'@ and @'(*)'@.
 --
 -- This catches some important numbers that are almost
 -- full-fledged rings, but not quite.
@@ -76,7 +93,9 @@ type Ring a =
 type Distributive a =
   (Additive a, Multiplicative a)
 
--- | '+', '-', '*', and '/'.
+-- | @'(+)'@, @'(-)'@, @'(*)'@, and @'(/)'@.
+--
+-- All @'Field'@s are also @'Ring'@s as a direct consequence of the definition.
 type Field a =
   (Additive a, Subtractive a, Multiplicative a, Fractional a)
 
