@@ -2,102 +2,134 @@ module Hummingbird.Interpret where
 
 import Birds.Prelude
 
+import Control.Exception
+import Control.Monad.Except
 import Control.Monad.Trans
 import Control.Monad.State
 import Data.Foldable
+import Data.IORef
 import Data.IntMap qualified
 import Data.Map (Map)
 import Data.Map qualified
+import Data.Typeable
+import Prettyprinter qualified as Pretty
 
 import Hummingbird.Builtin
+import Hummingbird.Literal (Literal)
+import Hummingbird.Literal qualified as Literal
+import Hummingbird.Name (Name)
+import Hummingbird.Name qualified as Name
 import Hummingbird.Rename
 import Hummingbird.Surface qualified as Surface
 import Hummingbird.Var
 import Hummingbird.VarMap (VarMap)
 import Hummingbird.VarMap qualified as VarMap
 
+infixr 5 :::
+
 type InterpretM = StateT (VarMap (Surface.Term Var)) (Either Text)
 
-interpret ::
-  Var
-  -> [(Var, Surface.Term Var)]
-  -> Either Text [Surface.Term Var]
+data Rep
+  = Array [Rep]
+  | Closure !(Surface.Term Var) [Rep]
+  | Lit !Literal
+  | Text !Text
+  | Word !Var
+  deriving (Show)
 
-interpret entry defns =
+data Stack a = Bottom | !a ::: !(Stack a)
+  deriving (Functor, Foldable)
+
+instance Pretty Rep where
+  pretty = \case
+    Array reps -> pretty $ reverse reps
+    Closure quoted args ->
+      Pretty.brackets $ Pretty.hsep [
+          Pretty.hsep $ Pretty.brackets . pretty <$> args
+        , pretty quoted
+        ]
+    Lit  lit  -> pretty lit
+    Text text -> pretty text
+    Word word -> pretty word
+
+newtype Failure = Failure (Pretty.Doc ())
+  deriving (Typeable)
+
+instance Exception Failure
+
+instance Show Failure where
+  show (Failure message) = show message
+
+interpret :: Var -> VarMap (Surface.Term Var) -> IO [Rep]
+interpret entry defns = do
+  stackRef <- newIORef Bottom
+
   let
-    go ::
-      Surface.Term Var
-      -> [Surface.Term Var]
-      -> InterpretM [Surface.Term Var]
+    interpTerm :: Surface.Term Var -> IO ()
+    interpTerm = \case
+      Surface.Lit literal -> do
+        modifyIORef' stackRef (Lit literal :::)
+      Surface.Word var -> interpWord var
+      Surface.Lambda{} -> undefined
+      Surface.Match{} -> undefined
+      Surface.Quoted quoted -> do
+        modifyIORef' stackRef (Closure quoted [] :::)
+      Surface.Concat terms -> do
+        forM_ terms interpTerm
 
-    go (Surface.Word var) stk =
-      case var of
-        Prim Cat -> cat var stk
-        Prim Apply -> apply var stk
-        Prim Dip -> dip var stk
-        Prim Swap -> swap var stk
-        Prim Dup -> dup var stk
-        Prim Drop -> drop var stk
-        Prim K -> k var stk
-        Prim Cake -> cake var stk
-        Prim Placeholder -> pure stk
-        _ -> do
-          defmb <- def var
-          case defmb of
-            Nothing -> pure $ Surface.Word var : stk
-            Just defn -> go defn stk
+    interpWord :: Var -> IO ()
+    interpWord (Prim prim) = interpIntrinsic prim
+    interpWord var =
+      case VarMap.lookup var defns of
+        Just defn ->
+          interpTerm defn
+        Nothing ->
+          throwIO $ Failure $ Pretty.hcat [
+              "No definition matching: "
+            , pretty var
+            ]
 
-    go (Surface.Lambda b body) (arg : stk) =
-      flip go stk =<< subst (b, arg) body
+    interpIntrinsic :: Builtin -> IO ()
+    interpIntrinsic prim = do
+      stack <- readIORef stackRef
+      case (prim, stack) of
+        (Apply, Closure quoted args ::: r) -> do
+          writeIORef stackRef r
+          forM_ args $ \arg -> modifyIORef' stackRef (arg :::)
+          interpTerm quoted
 
-    go (Surface.Quoted expr) stk =
-      pure $ expr : stk
+        (Cake, Closure a args ::: b ::: r) -> do
+          writeIORef stackRef r
+          forM_ [
+              Closure a (b:args)        -- [[B] A]
+            , Array [b, Closure a args] -- [A [B]]
+            ]
+            (\x -> modifyIORef' stackRef (x :::))
+        
+        (Cat, Array a ::: Array b ::: r) -> do
+          writeIORef stackRef $ Array (a <> b) ::: r
 
-    go (Surface.Concat exprs) stk = foldlM (flip go) stk exprs
+        (Dip, Closure quoted args ::: b ::: r) -> do
+          writeIORef stackRef r
+          forM_ args $ \arg -> modifyIORef' stackRef (arg :::)
+          interpTerm quoted
+          modifyIORef' stackRef (b :::)
 
-    go expr stk =
-      pure $ expr : stk
+        (Drop, _ ::: r) -> do
+          writeIORef stackRef r
+        
+        (Dup, a ::: r) -> do
+          writeIORef stackRef $ a ::: a ::: r
 
-    subst ::
-      (Var, Surface.Term Var)
-      -> Surface.Term Var
-      -> InterpretM (Surface.Term Var)
+        (K, Closure a args ::: b ::: r) -> do
+          writeIORef stackRef r
+          forM_ args $ \arg -> modifyIORef' stackRef (arg :::)
+          interpTerm a
 
-    subst (b, arg) body =
-      case body of
-        Surface.Word v | b == v -> pure arg
-        Surface.Lambda b' body' | b /= b' -> Surface.Lambda b' <$> subst (b, arg) body'
-        Surface.Quoted expr -> Surface.Quoted <$> subst (b, arg) expr
-        Surface.Concat exprs -> Surface.Concat <$> traverse (subst (b, arg)) exprs
-        _ -> pure body
+        (Swap, a ::: b ::: r) -> do
+          writeIORef stackRef $ b ::: a ::: r
 
-    def :: Var -> InterpretM (Maybe (Surface.Term Var))
-    def var = gets (VarMap.lookup var)
+        (Placeholder, r) -> pure ()
 
-    cat _ (x:y:stk) = pure $ (y <> x) : stk
-    cat v stk       = pure $ Surface.Word v : stk
-
-    apply _ (x:stk) = go x stk
-    apply v stk     = pure $ Surface.Word v : stk
-
-    dip _ (x:y:stk) = (y:) <$> go x stk
-    dip v stk       = pure $ Surface.Word v : stk
-
-    swap _ (x:y:stk) = pure $ y : x : stk
-    swap v stk       = pure $ Surface.Word v : stk
-
-    dup _ (x:stk) = pure $ x : x : stk
-    dup v stk     = pure $ Surface.Word v : stk
-
-    drop _ (_:stk)  = pure stk
-    drop v stk      = pure $ Surface.Word v : stk
-
-    k _ (x:y:stk) = go x stk
-    k v stk       = pure $ Surface.Word v : stk
-
-    cake _ (x:y:stk)  = pure $ (x <> Surface.Quoted y) : (Surface.Quoted y <> x) : stk
-    cake v stk        = pure $ Surface.Word v : stk
-
-    defnMap = VarMap.fromList $ map (\(bndr, body) -> (bndr, body)) defns
-  in
-    reverse <$> evalStateT (go (Surface.Word entry) []) defnMap
+  interpWord entry
+  reverse . toList <$> readIORef stackRef

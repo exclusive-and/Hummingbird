@@ -101,9 +101,8 @@ compileTask modName srcFilePath = do
   modDecls <- fetch $ Query.ModuleDefinitions modName codebase'
   case Map.lookup "main" rnMap of
     Nothing -> pure ()
-    Just entry -> do
+    Just entry -> liftIO $ do
       let decls = map (\(Surface.Fun name term) -> (name, term)) modDecls
-      case interpret entry decls of
-        Left errs -> liftIO $ print $ show errs
-        Right result -> liftIO $ print $ pretty result
+      result <- interpret entry (VarMap.fromList decls)
+      print $ pretty result
   pure ()
