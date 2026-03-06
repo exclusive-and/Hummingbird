@@ -1,4 +1,4 @@
-module Hummingbird.Dialectica where
+module Hummingbird.Rules where
 
 import Birds.Prelude
 

@@ -32,7 +32,6 @@ import Fetch (
 import Fetch qualified
 
 import Hummingbird.Builtin
-import Hummingbird.Dialectica qualified as Dialectica
 import Hummingbird.Error (Error)
 import Hummingbird.Error qualified as Error
 import Hummingbird.Interpret (interpret)
@@ -44,6 +43,7 @@ import Hummingbird.Surface.Parsec
 import Hummingbird.Query (Query)
 import Hummingbird.Query qualified as Query
 import Hummingbird.Rename (runRename, renameBinds)
+import Hummingbird.Rules qualified
 import Hummingbird.Surface qualified as Surface
 import Hummingbird.Surface.Token as Token
 import Hummingbird.Surface.Tokenize
@@ -66,14 +66,14 @@ run task = do
       parse hummingbirdP path tokens1
   let
     raiseErrors ::
-      Writer Dialectica.TaskKind Query a
+      Writer Hummingbird.Rules.TaskKind Query a
       -> [Error]
       -> Task Query IO ()
     raiseErrors _ errs = liftIO $ print $ pretty errs
   let
     ignoreTaskKind ::
       Query a
-      -> Dialectica.TaskKind
+      -> Hummingbird.Rules.TaskKind
       -> Task Query IO ()
     ignoreTaskKind q _ = pure ()
   let
@@ -83,7 +83,7 @@ run task = do
     rules =
       Fetch.writer ignoreTaskKind $
         Fetch.writer raiseErrors $
-          Dialectica.rules readFile_ parse_
+          Hummingbird.Rules.rules readFile_ parse_
   catch
     (Right <$> Fetch.runTask rules task)
     (\(Error.Errors errs) -> pure (Left errs))

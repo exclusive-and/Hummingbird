@@ -77,7 +77,6 @@ library hummingbird
   exposed-modules:
     Hummingbird.Builtin
     Hummingbird.Codebase
-    Hummingbird.Dialectica
     Hummingbird.Error
     Hummingbird.Interpret
     Hummingbird.Literal
@@ -85,6 +84,7 @@ library hummingbird
     Hummingbird.Name
     Hummingbird.Query
     Hummingbird.Rename
+    Hummingbird.Rules
     Hummingbird.Surface
     Hummingbird.Surface.Layoutize
     Hummingbird.Surface.Located
