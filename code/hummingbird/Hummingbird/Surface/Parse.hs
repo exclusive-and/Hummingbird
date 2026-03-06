@@ -6,6 +6,8 @@ import Control.Applicative
 import Control.Monad
 import Data.Coerce (coerce)
 
+import Hummingbird.Literal (Literal)
+import Hummingbird.Literal qualified as Literal
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
 import Hummingbird.Surface qualified as Surface
@@ -57,10 +59,26 @@ termsP = do
     _   -> pure $ Surface.Concat xs
 
 termP :: P (Surface.Term Name)
-termP = wordP <|> lambdaP <|> quotedP <|> parenP someTermsP
+termP = choice [
+    Surface.Lit <$> litP
+  , Surface.Word <$> nameP
+  , lambdaP
+  , Surface.Quoted <$> bracketP termsP
+  , parenP someTermsP
+  ]
 
-wordP :: P (Surface.Term Name)
-wordP = Surface.Word <$> nameP
+litP :: P Literal
+litP = choice [
+    Literal.Int <$> integerP
+  ]
+
+integerP :: P Integer
+integerP = Parsec.tokenPrim go
+  where
+    go token =
+      case Located.unLoc token of
+        Token.Integer value -> Just value
+        _                   -> Nothing
 
 lambdaP :: P (Surface.Term Name)
 lambdaP = do
@@ -68,9 +86,6 @@ lambdaP = do
   bndr <- nameP
   expect Token.ArrowR
   Surface.Lambda bndr <$> someTermsP
-
-quotedP :: P (Surface.Term Name)
-quotedP = Surface.Quoted <$> bracketP termsP
 
 funTyP :: P (Surface.Type Name)
 funTyP = funTyP

@@ -122,18 +122,17 @@ tokenize line path text =
 {-# INLINE tokenize #-}
 
 -- | Newlines and indentation.
-
 newline :: Tokenize (Located (Token 'Layout))
 newline = do
   void endOfLine
   void spaces
-  located (Indent <$> sourceColumn <$> getPosition)
+  located (Indent . sourceColumn <$> getPosition)
 
 -- | Visible tokens.
-
 visible :: Tokenize (Token 'Layout)
 visible = choice [
     operator
+  , number
   , word
   , character
   , BracketL <$ char '['
@@ -170,6 +169,15 @@ colon = Colon <$ char ':' <* notFollowedBy symbol
 
 equals :: Tokenize (Token 'Layout)
 equals = Equals <$ char '=' <* notFollowedBy symbol
+
+number :: Tokenize (Token 'Layout)
+number = do
+  sign <- Text.Parsec.optionMaybe $ Parsec.oneOf "+-"
+  value <- some Parsec.digit
+  pure $ case sign of
+    Nothing  -> Integer $ read value
+    Just '+' -> Integer $ read value
+    Just '-' -> Integer $ negate $ read value
 
 operator :: Tokenize (Token 'Layout)
 operator = do
