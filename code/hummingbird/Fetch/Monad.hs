@@ -3,7 +3,7 @@
 
 module Fetch.Monad where
 
-import Birds.Prelude
+import Prelude
 
 import Control.Monad
 import Control.Monad.Chronicle (

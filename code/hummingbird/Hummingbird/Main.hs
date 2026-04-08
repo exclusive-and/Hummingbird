@@ -1,104 +1,119 @@
-{-# Language DataKinds #-}
-{-# Language GADTs #-}
-{-# Language OverloadedStrings #-}
-
 module Hummingbird.Main where
 
-import Birds.Prelude
-
-import Control.Applicative
 import Control.Exception
-import Control.Monad
-import Control.Monad.IO.Class
-import Data.Bifunctor
-import Data.Foldable
-import Data.HashSet (HashSet)
-import Data.HashSet qualified as HashSet
+import Data.IORef
+import Data.IORef.Extra (atomicModifyIORef_)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
 import Data.Text qualified as Text
-import Data.These
-import Prettyprinter qualified as Pretty
+import Data.Text.IO qualified as Text
+import Prelude
+import Prettyprinter
 
-import Fetch (
-  fetch,
-  Task,
-  Rules,
-  GenRules,
-  Except (..),
-  Writer (..),
+import Fetch
+  ( fetch
+  , GenRules
+  , Rules
+  , Task
+  , writer
+  , Writer (..)
   )
 import Fetch qualified
 
-import Hummingbird.Builtin
-import Hummingbird.Error (Error)
-import Hummingbird.Error qualified as Error
+import Hummingbird.Codebase as Codebase
+import Hummingbird.Error as Error
+import Hummingbird.Ingest
 import Hummingbird.Interpret (interpret)
-import Hummingbird.Name qualified as Name
-import Hummingbird.Surface qualified as Hb
-import Hummingbird.Surface.Layoutize
-import Hummingbird.Surface.Parse
-import Hummingbird.Surface.Parsec
-import Hummingbird.Query (Query)
-import Hummingbird.Query qualified as Query
-import Hummingbird.Rename (runRename, renameBinds)
-import Hummingbird.Rules qualified
+import Hummingbird.Name as Name
+import Hummingbird.Query
+import Hummingbird.Repl.Command
+import Hummingbird.Repl.Console
 import Hummingbird.Surface qualified as Surface
-import Hummingbird.Surface.Token as Token
-import Hummingbird.Surface.Tokenize
-import Hummingbird.Var
-import Hummingbird.VarMap (VarMap)
+import Hummingbird.Surface.Layoutize (defaultKws, layoutize)
+import Hummingbird.Surface.Parse (parse)
+import Hummingbird.Surface.Tokenize (tokenize)
 import Hummingbird.VarMap qualified as VarMap
+import Hummingbird.Version (Version)
 
-main :: Name.Module -> FilePath -> IO ()
-main modName srcFilePath = do
-  run (compileTask modName srcFilePath) >>= \case
-    Right okay -> pure okay
-    Left errs -> print $ Pretty.vcat $ pretty <$> errs
-
-run :: Task Query IO a -> IO (Either [Error] a)
+-- | Run a 'Task' using the inference rules defined in 'compileRules'.
+run :: Task Query IO a -> IO (a, [Error])
 run task = do
+  errorsRef <- newIORef []
+  codebase <- Codebase.init
   let
-    parse_ path text = first (pure . Error.Parse path . Text.pack . show) $ do
-      tokens0 <- parse (tokensLex @(Token 'Layout)) path text
-      tokens1 <- runParser (tokensLex @(Token 'NonLayout)) (initLayoutState [Module]) path tokens0
-      parse hummingbirdP path tokens1
-  let
-    raiseErrors ::
-      Writer Hummingbird.Rules.TaskKind Query a
-      -> [Error]
-      -> Task Query IO ()
-    raiseErrors _ errs = liftIO $ print $ pretty errs
-  let
-    ignoreTaskKind ::
-      Query a
-      -> Hummingbird.Rules.TaskKind
-      -> Task Query IO ()
-    ignoreTaskKind q _ = pure ()
-  let
-    readFile_ path = Right . Text.pack <$> readFile path
+    recordErrors :: p a -> [Error] -> Task Query IO ()
+    recordErrors _key errs =
+      liftIO $ atomicModifyIORef_ errorsRef (++ errs)
   let
     rules :: Rules Query
-    rules =
-      Fetch.writer ignoreTaskKind $
-        Fetch.writer raiseErrors $
-          Hummingbird.Rules.rules readFile_ parse_
-  catch
-    (Right <$> Fetch.runTask rules task)
-    (\(Error.Errors errs) -> pure (Left errs))
+    rules = writer ignoreTaskKind
+          $ writer recordErrors
+          $ compileRules codebase (fmap Right . Text.readFile) parse_
+  Fetch.runTask rules $ do
+    result <- task
+    errors <- liftIO (readIORef errorsRef)
+    pure (result, errors)
 
-compileTask :: Name.Module -> FilePath -> Task Query IO ()
-compileTask modName srcFilePath = do
-  codebase <- fetch Query.GetCodebase
-  (ingested, codebase') <- fetch $ Query.IngestFile srcFilePath codebase
+-- | The compiler's top-level inference rules.
+compileRules ::
+  Codebase
+  -> ReadFile
+  -> (FilePath -> ParseModuleSource)
+  -> GenRules
+      (Writer [Error] (Writer TaskKind Query))
+      Query
+
+compileRules codebase readFile_ parse_ (Writer (Writer query)) = case query of
+  InitCodebase ->
+    noError $ pure codebase
+  GetModule modName ->
+    noError $ liftIO $
+    Codebase.lookupModule modName codebase >>= \case
+      Nothing -> do
+        pure $ Surface.Module modName []
+      Just found -> pure $ fst found
+  ModuleDefines modName ->
+    noError $ liftIO $
+    Codebase.lookupModule modName codebase >>= \case
+      Nothing -> pure Map.empty
+      Just found -> pure $ snd found
+  ModuleDefinitions modName ->
+    noError $ do
+      modDefn <- fetch $ GetModule modName
+      pure $ Surface.decls modDefn
+  IngestDecl modName decl ->
+    noError $ ingestDecl modName decl codebase
+  FileText path ->
+    input $ getFileText readFile_ path
+  FileRope path ->
+    input $ getFileRope readFile_ path
+  ParsedFile path ->
+    noError $ parseModuleFile parse_ path
+  IngestFile path ->
+    noError $ ingestFile path codebase
+  IngestDirectory rootPath ->
+    noError $ ingestDirectory rootPath codebase
+
+-- |
+compileTask :: Version -> Task Query IO ()
+compileTask version = do
+  liftIO $ print "'compileTask'"
+  let
+    modName :: Name.Module
+    modName = "Example"
+  let
+    srcFilePath :: FilePath
+    srcFilePath =  "code/hummingbird/examples/test"
+  codebase <- fetch InitCodebase
+  ingested <- fetch $ IngestFile srcFilePath
   case ingested of
     Nothing -> pure ()
-    Just errs -> liftIO $ print $ pretty errs
-  modGuts <- fetch $ Query.GetModule modName codebase'
+    Just errs -> liftIO $ throwIO errs
+  modGuts <- fetch $ GetModule modName
   liftIO $ print $ pretty modGuts
-  rnMap <- fetch $ Query.ModuleDefines modName codebase'
-  modDecls <- fetch $ Query.ModuleDefinitions modName codebase'
+  rnMap <- fetch $ ModuleDefines modName
+  modDecls <- fetch $ ModuleDefinitions modName
   case Map.lookup "main" rnMap of
     Nothing -> pure ()
     Just entry -> liftIO $ do
@@ -106,3 +121,25 @@ compileTask modName srcFilePath = do
       result <- interpret entry (VarMap.fromList decls)
       print $ pretty result
   pure ()
+
+parse_ :: FilePath -> ParseModuleSource
+parse_ path =
+  tokenize 0 path >=> layoutize defaultKws path >=> parse path
+
+data TaskKind = Input | NonInput
+  deriving (Show)
+
+ignoreTaskKind :: p a -> TaskKind -> Task Query IO ()
+ignoreTaskKind _key _taskKind = pure ()
+
+type Result a = ((a, TaskKind), [Error])
+
+input :: (Functor m) => m a -> m (Result a)
+input = fmap ((, mempty) . (, Input))
+
+noError :: (Functor m) => m a -> m (Result a)
+noError = fmap ((, mempty) . (, NonInput))
+
+nonInput :: (Functor m) => m (a, [Error]) -> m (Result a)
+nonInput = fmap (first (, NonInput))
+

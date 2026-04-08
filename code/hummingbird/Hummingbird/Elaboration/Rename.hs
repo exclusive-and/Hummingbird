@@ -1,6 +1,6 @@
 {-# Language RecordWildCards #-}
 
-module Hummingbird.Rename
+module Hummingbird.Elaboration.Rename
 (
   -- * Renaming
   renameVar,
@@ -9,7 +9,6 @@ module Hummingbird.Rename
   renameBinds,
   renameLhs,
   renameRhs,
-  RenameMessage (..),
 
   -- * Creating variables
   RnMap,
@@ -23,8 +22,6 @@ module Hummingbird.Rename
   runRename,
 ) where
 
-import Birds.Prelude
-
 import Control.Monad.Chronicle
 import Control.Monad.State
 import Control.Monad.Trans
@@ -34,9 +31,12 @@ import Data.Map qualified as Map
 import Data.Semigroup
 import Data.These
 import Data.Traversable
+import Prelude
 import Prettyprinter qualified as Pretty
 
 import Hummingbird.Builtin
+import Hummingbird.Error (Error)
+import Hummingbird.Error qualified as Error
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
 import Hummingbird.Surface
@@ -55,37 +55,7 @@ renameVar inScope name =
     Just term ->
       pure term
     Nothing ->
-      confess $ NotInScope name
-
--- |
-data RenameMessage
-  = NotInScope Name
-  | Ambiguous Name Var
-  | ManyRnMessages [RenameMessage]
-  deriving (Eq, Show)
-
-instance Pretty RenameMessage where
-  pretty = \case
-    NotInScope name ->
-      Pretty.hsep ["Not in scope:", pretty name]
-    Ambiguous name var ->
-      Pretty.hsep ["Ambiguous:", pretty name, pretty var]
-    ManyRnMessages msgs ->
-      Pretty.vcat (map pretty msgs)
-
-instance Semigroup RenameMessage where
-  a <> b = catMessages [a, b]
-  sconcat = catMessages . toList
-
--- |
-catMessages :: [RenameMessage] -> RenameMessage
-catMessages = \case
-  [msg] -> msg
-  msgs  -> ManyRnMessages $ concatMap go msgs
-  where
-    go = \case
-      ManyRnMessages xs -> xs
-      other             -> [other]
+      confess [Error.Elaboration $ Error.NotInScope name]
 
 -- |
 type RnMap = Map Name Var
@@ -159,7 +129,7 @@ freshenNoShadowing name inScope =
     Nothing ->
       freshen name
     Just other ->
-      confess $ Ambiguous name other
+      confess [Error.Elaboration $ Error.AmbiguousNames name other]
 
 -- |
 withFreshNoShadowing :: Name -> RnMap -> (Var -> RnMap -> RenameM a) -> RenameM a
@@ -169,14 +139,14 @@ withFreshNoShadowing name inScope k = do
 
 -- |
 newtype RenameM a = RenameM {
-    unRename :: ChronicleT RenameMessage (State RenameState) a
+    unRename :: ChronicleT [Error] (State RenameState) a
   }
-  deriving (Functor, Applicative, Monad)
+  deriving newtype (Functor, Applicative, Monad)
 
-deriving instance MonadChronicle RenameMessage RenameM
+deriving newtype instance MonadChronicle [Error] RenameM
 
 -- |
-runRename :: InScope -> (InScope -> RenameM a) -> These RenameMessage a
+runRename :: InScope -> (InScope -> RenameM a) -> These [Error] a
 runRename inScope k =
   evalState
     (runChronicleT $ unRename $ k inScope)

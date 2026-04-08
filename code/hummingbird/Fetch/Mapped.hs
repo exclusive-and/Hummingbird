@@ -1,19 +1,17 @@
 module Fetch.Mapped where
 
-import Birds.Prelude
-
 import Data.Hashable
 import Data.HashMap.Lazy (HashMap)
 import Data.HashMap.Lazy qualified as HashMap
+import Prelude
+import Prettyprinter
 
 import Fetch (fetch, Task)
 
 -- |
 data Query k v a where
-
   -- |
   GetMap :: Query k v (HashMap k v)
-
   -- |
   Lookup :: k -> Query k v (Maybe v)
 
@@ -34,9 +32,9 @@ rule ::
   -> Query k v a
   -> Task q m (HashMap k v)
   -> Task q m a
-rule inject query getMap =
-  case query of
-    GetMap ->
-      getMap
-    Lookup key ->
-      HashMap.lookup key <$> fetch (inject GetMap)
+
+rule inject query getMap = case query of
+  GetMap ->
+    getMap
+  Lookup key ->
+    HashMap.lookup key <$> fetch (inject GetMap)

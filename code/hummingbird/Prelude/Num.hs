@@ -1,4 +1,4 @@
-module Birds.Prelude.Num
+module Prelude.Num
 (
   -- * Numbers
   Ring,
@@ -69,7 +69,7 @@ import GHC.Float (Double, Float)
 import GHC.Generics (Generic)
 import GHC.Integer (Integer)
 import Numeric.Natural (Natural)
-import Prelude qualified
+import "base" Prelude qualified
 
 infixl 6 +, -
 infixl 7 *
@@ -159,9 +159,9 @@ instance (Additive a) => Semigroup (Sum a) where
 instance (Additive a) => Monoid (Sum a) where
   mempty = coerce (zero @a)
 
-deriving instance (Additive a) => Additive (Sum a)
-deriving instance (Subtractive a) => Subtractive (Sum a)
-deriving instance (Multiplicative a) => Multiplicative (Sum a)
+deriving newtype instance (Additive a) => Additive (Sum a)
+deriving newtype instance (Subtractive a) => Subtractive (Sum a)
+deriving newtype instance (Multiplicative a) => Multiplicative (Sum a)
 
 -- | Subtraction
 class (Additive a) => Subtractive a where
@@ -264,9 +264,9 @@ instance (Multiplicative a) => Semigroup (Product a) where
 instance (Multiplicative a) => Monoid (Product a) where
   mempty = coerce (one @a)
 
-deriving instance (Additive a) => Additive (Product a)
-deriving instance (Subtractive a) => Subtractive (Product a)
-deriving instance (Multiplicative a) => Multiplicative (Product a)
+deriving newtype instance (Additive a) => Additive (Product a)
+deriving newtype instance (Subtractive a) => Subtractive (Product a)
+deriving newtype instance (Multiplicative a) => Multiplicative (Product a)
 
 -- | Integral numbers
 class (Additive a, Multiplicative a) => Integral a where

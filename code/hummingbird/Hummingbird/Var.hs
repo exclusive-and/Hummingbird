@@ -1,6 +1,6 @@
 module Hummingbird.Var where
 
-import Birds.Prelude
+import Prelude
 
 import Data.Hashable (Hashable)
 import Prettyprinter qualified as Pretty

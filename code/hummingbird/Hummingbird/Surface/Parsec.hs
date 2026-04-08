@@ -66,7 +66,7 @@ module Hummingbird.Surface.Parsec
 )
 where
 
-import Birds.Prelude
+import Prelude
 
 import Data.Text (Text)
 import Data.Text qualified as Text

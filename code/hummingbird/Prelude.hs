@@ -1,9 +1,9 @@
-module Birds.Prelude
+module Prelude
 (
   -- * Getting started
 
   -- ** Numbers
-  module Birds.Prelude.Num,
+  module Prelude.Num,
 
   -- ** Logic
   module Data.Bool,
@@ -67,7 +67,7 @@ module Birds.Prelude
   module GHC.Generics,
 ) where
 
-import Birds.Prelude.Num
+import Prelude.Num
 
 import Control.Applicative
 import Control.Monad

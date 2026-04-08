@@ -1,10 +1,11 @@
 module Hummingbird.Builtin where
 
-import Birds.Prelude
-
+import Data.Binary
 import Data.Hashable
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Prelude
+import Prettyprinter
 
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
@@ -19,7 +20,9 @@ data Builtin
   | K
   | Cake
   | Placeholder
-  deriving (Generic, Eq, Ord, Show)
+  deriving (Eq, Generic, Ord, Show)
+
+instance Binary Builtin
 
 instance Hashable Builtin
 

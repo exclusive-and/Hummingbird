@@ -1,7 +1,5 @@
 module Hummingbird.Interpret where
 
-import Birds.Prelude
-
 import Control.Exception
 import Control.Monad.Except
 import Control.Monad.Trans
@@ -11,15 +9,16 @@ import Data.IORef
 import Data.IntMap qualified
 import Data.Map (Map)
 import Data.Map qualified
+import Prelude
 import Data.Typeable
 import Prettyprinter qualified as Pretty
 
 import Hummingbird.Builtin
+import Hummingbird.Elaboration.Rename
 import Hummingbird.Literal (Literal)
 import Hummingbird.Literal qualified as Literal
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
-import Hummingbird.Rename
 import Hummingbird.Surface qualified as Surface
 import Hummingbird.Var
 import Hummingbird.VarMap (VarMap)

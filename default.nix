@@ -1,15 +1,42 @@
 args@{
   sources ? import ./nix/sources.nix
-, getnix ? import sources."get.nix" {}
-, isShell ? false
+, ...
 }:
-getnix.buildHaskell {
-  name = "birds";
-  version = "0";
-  depends = hspkgs: with hspkgs; [
-    base
-    containers
-    text
-  ];
-  inherit isShell;
-}
+let
+  defaultArgs = {
+    lib = import "${sources.nixpkgs}/lib";
+    nixpkgs = import sources.nixpkgs {};
+  };
+
+  project = {
+    name = "hummingbird";
+    version = "0";
+
+    src = ./code;
+
+    depends = haskellPackages: with haskellPackages; [
+      ansi-terminal
+      base
+      binary
+      bytestring
+      containers
+      crypton
+      filepath
+      hashable
+      haskeline
+      monad-chronicle
+      mtl
+      parsec
+      prettyprinter
+      prettyprinter-ansi-terminal
+      shellmet
+      template-haskell
+      text
+      text-rope
+      these
+      transformers
+      unordered-containers
+    ];
+  };
+in
+  import ./scripts/build.nix (defaultArgs // args) project

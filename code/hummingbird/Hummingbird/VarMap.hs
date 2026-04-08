@@ -9,7 +9,7 @@ module Hummingbird.VarMap
   toList,
 ) where
 
-import Birds.Prelude hiding (
+import Prelude hiding (
     empty,
     lookup,
     toList,

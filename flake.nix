@@ -1,34 +1,24 @@
 {
-  description = "";
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
-  inputs = {
-    getnix.url = "github:exclusive-and/get.nix";
-  };
-
-  outputs = {
-    self
-  , getnix
-  , nixpkgs
-  }:
+  outputs = inputs:
   let
-    systems = [
-      "x86_64-linux"
-    ];
+    inherit (inputs.nixpkgs) lib;
 
-    forAllSystems = getnix.lib.genAttrs systems;
+    forEachSystem = systems: f:
+      lib.foldl' lib.recursiveUpdate {} (lib.map f systems);
   in
-  {
-    packages = forAllSystems (system: {
-      default = import ./. {
-        getnix = getnix.getnix.${system};
-      };
-    });
-
-    devShells = forAllSystems (system: {
-      default = import ./. {
-        getnix = getnix.getnix.${system};
-        isShell = true;
-      };
-    });
-  };
+    forEachSystem ["x86_64-linux"] (
+      system:
+      let
+        project = import ./. {
+          inherit lib;
+          nixpkgs = inputs.nixpkgs.legacyPackages.${system};
+        };
+      in
+      {
+        packages.${system}.default = project;
+        devShells.${system}.default = project.devShell;
+      }
+    );
 }

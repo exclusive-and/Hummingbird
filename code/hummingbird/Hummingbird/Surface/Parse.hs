@@ -1,11 +1,15 @@
 module Hummingbird.Surface.Parse where
 
-import Birds.Prelude
-
 import Control.Applicative
 import Control.Monad
+import Control.Monad.Except
 import Data.Coerce (coerce)
+import Data.Text qualified as Text
+import Prelude
+import Text.Parsec qualified
 
+import Hummingbird.Error (Error)
+import Hummingbird.Error qualified as Error
 import Hummingbird.Literal (Literal)
 import Hummingbird.Literal qualified as Literal
 import Hummingbird.Name (Name)
@@ -15,15 +19,31 @@ import Hummingbird.Surface.Located (Located)
 import Hummingbird.Surface.Located qualified as Located
 import Hummingbird.Surface.Parsec (
     P,
-    parse,
+    -- parse,
     between,
     choice,
     expect,
     try,
   )
 import Hummingbird.Surface.Parsec qualified as Parsec
+import Hummingbird.Surface.Token
+  ( Token
+  , Layoutness (..)
+  )
 import Hummingbird.Surface.Token qualified as Token
 import Hummingbird.Surface.Tokenize
+
+parse ::
+  (MonadError [Error] m)
+  => FilePath
+  -> [Located (Token 'NonLayout)]
+  -> m (Surface.Module Name)
+  
+parse path tokens =
+  case Parsec.parse hummingbirdP path tokens of
+    Right parsed -> pure parsed
+    Left errs -> throwError
+      [Error.CannotParse path (Text.pack $ show errs)]
 
 hummingbirdP :: P (Surface.Module Name)
 hummingbirdP = do

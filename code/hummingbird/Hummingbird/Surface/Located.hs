@@ -2,9 +2,9 @@
 
 module Hummingbird.Surface.Located where
 
-import Birds.Prelude
-
-import Prettyprinter qualified as Pretty
+import Data.Binary
+import Prelude
+import Prettyprinter
 
 data Located a = At Span a
 
@@ -27,16 +27,16 @@ atEndOf :: a -> Located b -> Located a
 atEndOf a (At loc _) = At (endOf loc) a
 
 data Span = Span {
-    name :: Text,
-    beginLine :: !Int,
-    beginColumn :: !Int,
-    endLine :: !Int,
-    endColumn :: !Int
+    name :: Text
+  , beginLine :: !Int
+  , beginColumn :: !Int
+  , endLine :: !Int
+  , endColumn :: !Int
   }
-  deriving (Eq, Show)
+  deriving (Binary, Eq, Generic, Ord, Show)
 
 instance Pretty Span where
-  pretty origin = Pretty.hcat [
+  pretty origin = hcat [
       pretty origin.name
     , ":"
     , pretty origin.beginLine
@@ -46,7 +46,7 @@ instance Pretty Span where
     , if origin.beginLine == origin.endLine then
         pretty origin.endColumn
       else
-        Pretty.hcat
+        hcat
           [ pretty origin.endLine
           , ","
           , pretty origin.endColumn

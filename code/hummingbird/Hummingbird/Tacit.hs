@@ -4,7 +4,7 @@ module Hummingbird.Tacit
   Alt (LitAlt, ConsAlt),
 ) where
 
-import Birds.Prelude
+import Prelude
 
 import Prettyprinter qualified as Pretty
 

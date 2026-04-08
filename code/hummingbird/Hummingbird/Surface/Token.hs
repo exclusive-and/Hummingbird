@@ -1,85 +1,81 @@
-module Hummingbird.Surface.Token
-(
-  -- * Tokens
-  Token (..),
-  Keyword (..),
+module Hummingbird.Surface.Token where
 
-  -- * Layout
-  fromLayout,
-  Layoutness (..),
-) where
-
-import Birds.Prelude
-
-import Prettyprinter as Pretty
+import Data.Binary
+import Data.Hashable
+import Data.Char
+import Data.Text qualified as Text
+import Prelude
+import Prettyprinter
 
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
 
-data Token (l :: Layoutness) where
+-- | Whether a token is layout-sensitive.
+data Layoutness
+  = Layout
+  | NonLayout
+  deriving (Eq, Show)
 
+-- | Lexical tokens.
+data Token (l :: Layoutness) where
   -- | @<-@
   ArrowL :: Token l
-
   -- | @->@
   ArrowR :: Token l
-
   -- | Mark the beginning of a new layout section.
   Begin :: Token 'NonLayout
-
   -- | @[@
   BracketL :: Token l
-
   -- | @]@
   BracketR :: Token l
-
-  -- | @'x'@
+  -- | A character literal; e.g. @'x'@.
   Character :: !Char -> Token l
-
   -- | @:@
   Colon :: Token l
-
   -- | @,@
   Comma :: Token l
-
   -- | Mark the end of the current layout section.
   End :: Token 'NonLayout
-
   -- | @=@
   Equals :: Token l
-
   -- | An indent.
   Indent :: !Int -> Token 'Layout
-
-  -- | @123@
+  -- | An integer literal; e.g. @123@.
   Integer :: !Integer -> Token l
-
   -- | A keyword.
   Keyword :: !Keyword -> Token 'NonLayout
-
   -- | Lambda, @\\@.
   Lambda :: Token l
-
   -- | Mark a new line in the current layout section.
   Newline :: Token 'NonLayout
-
   -- | An operator.
   Operator :: !Name -> Token l
-
   -- | @(@
   ParenL :: Token l
-
   -- | @)@
   ParenR :: Token l
-
   -- | A keyword that may affect layout.
   SpecialWord :: !Keyword -> Token 'Layout
-
+  -- | A text literal; e.g. @"abc"@.
+  Text :: !Text -> Token l
   -- | @_@
   Underscore :: Token l
-
   -- | A user-defined word.
   Word :: !Text -> Token l
+
+data Keyword
+  = Case
+  | Class
+  | Data
+  | Do
+  | In
+  | Instance
+  | Let
+  | Module
+  | Of
+  | Record
+  | Where
+  deriving (Eq, Ord, Show)
 
 instance Eq (Token l) where
   ArrowL          == ArrowL           = True
@@ -101,11 +97,13 @@ instance Eq (Token l) where
   ParenL          == ParenL           = True
   ParenR          == ParenR           = True
   SpecialWord a   == SpecialWord b    = a == b
+  Text a          == Text b           = a == b
+  Underscore      == Underscore       = True
   Word a          == Word b           = a == b
   _               == _                = False
 
 instance Pretty (Token l) where
-  pretty token = case token of
+  pretty = \case
     ArrowL -> "<-"
     ArrowR -> "->"
     Begin -> ">{"
@@ -122,30 +120,14 @@ instance Pretty (Token l) where
     Lambda -> backslash
     Newline -> backslash <> "n"
     Operator op -> pretty op
-    SpecialWord kw -> pretty kw
     ParenL -> "("
     ParenR -> ")"
+    SpecialWord kw -> pretty kw
+    Text text -> pretty text
     Word word -> pretty word
 
-instance Show (Token l) where
-  showsPrec n = showsPrec n . pretty
-
-data Keyword
-  = Case
-  | Class
-  | Data
-  | Do
-  | In
-  | Instance
-  | Let
-  | Module
-  | Of
-  | Record
-  | Where
-  deriving (Eq, Ord, Show)
-
 instance Pretty Keyword where
-  pretty kw = case kw of
+  pretty = \case
     Case -> "case"
     Class -> "class"
     Data -> "data"
@@ -158,30 +140,27 @@ instance Pretty Keyword where
     Record -> "record"
     Where -> "where"
 
--- | Whether a token is layout-sensitive.
+instance Show (Token l) where
+  showsPrec n = showsPrec n . pretty
 
-data Layoutness
-  = Layout
-  | NonLayout
-  deriving (Eq, Show)
-
+-- | Convert non-layout tokens during lexical layout analysis.
 fromLayout :: Token 'Layout -> Maybe (Token 'NonLayout)
-fromLayout token =
-  case token of
-    ArrowL -> Just ArrowL
-    ArrowR -> Just ArrowR
-    BracketL -> Just BracketL
-    BracketR -> Just BracketR
-    Character c -> Just (Character c)
-    Colon -> Just Colon
-    Comma -> Just Comma
-    Equals -> Just Equals
-    Indent _ -> Nothing
-    Integer x -> Just (Integer x)
-    Lambda -> Just Lambda
-    Operator op -> Just (Operator op)
-    SpecialWord kw -> Just (Keyword kw)
-    ParenL -> Just ParenL
-    ParenR -> Just ParenR
-    Underscore -> Just Underscore
-    Word word -> Just (Word word)
+fromLayout = \case
+  ArrowL -> Just ArrowL
+  ArrowR -> Just ArrowR
+  BracketL -> Just BracketL
+  BracketR -> Just BracketR
+  Character c -> Just (Character c)
+  Colon -> Just Colon
+  Comma -> Just Comma
+  Equals -> Just Equals
+  Indent _ -> Nothing
+  Integer x -> Just (Integer x)
+  Lambda -> Just Lambda
+  Operator op -> Just (Operator op)
+  SpecialWord kw -> Just (Keyword kw)
+  ParenL -> Just ParenL
+  ParenR -> Just ParenR
+  Underscore -> Just Underscore
+  Text text -> Just (Text text)
+  Word word -> Just (Word word)

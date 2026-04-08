@@ -2,45 +2,42 @@
 
 module Hummingbird.Surface.Layoutize where
 
-import Birds.Prelude
-
 import Control.Applicative
+import Control.Monad
 import Control.Monad.Chronicle
+import Control.Monad.Except
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NonEmpty
+import Data.Text qualified as Text
+import Prelude
 import Text.Parsec qualified
 
-import Hummingbird.Surface.Located (
-    Located (At),
-    Span,
-    unLoc,
-  )
+import Hummingbird.Error (Error)
+import Hummingbird.Error qualified as Error
+import Hummingbird.Surface.Located (Located)
+import Hummingbird.Surface.Located qualified as Located
 import Hummingbird.Surface.Parsec hiding (anyToken, tokenPrim)
 import Hummingbird.Surface.Parsec qualified as Parsec
-import Hummingbird.Surface.Token (
-    Token (..),
-    Keyword (..),
-    Layoutness (..),
-  )
-import Hummingbird.Surface.Token qualified as Token
-import Hummingbird.Surface.Tokenize (
-    MonadToken (..),
-  )
+import Hummingbird.Surface.Token as Token
+import Hummingbird.Surface.Tokenize (MonadToken (..))
+
+-- | The lexical layout parsing monad.
+type Layoutize =
+  Parsec [Located (Token 'Layout)] LayoutState
 
 instance MonadToken (Token 'NonLayout) Layoutize where
-  tokenLex =
-    do
-      state <- popState
-      case state of
-        Zero -> layoutKeyword <|> anyToken <|> newline'
-        DoNewLayoutContext -> newLayoutContext
-        DoNewline loc -> newline loc
-        DoEmptyLayout loc -> pure $ At loc End
-    where
+  tokenLex = do
+    state <- popState
+    let
       newline' = do
-        At loc _ <- located indentation
+        Located.At loc _ <- located indentation
         pushState (DoNewline loc)
         tokenLex
+    case state of
+      Zero -> layoutKeyword <|> anyToken <|> newline'
+      DoNewLayoutContext -> newLayoutContext
+      DoNewline loc -> newline loc
+      DoEmptyLayout loc -> pure $ Located.At loc End
 
   tokensLex = reverse <$> go []
     where
@@ -57,7 +54,7 @@ instance MonadToken (Token 'Layout) Layoutize where
   tokensLex = getInput
 
 layoutize ::
-  (MonadChronicle ParseError m)
+  (MonadError [Error] m)
   => [Keyword]
   -> FilePath
   -> [Located (Token 'Layout)]
@@ -65,54 +62,51 @@ layoutize ::
 
 layoutize kws path tokens =
   case runParser tokensLex (initLayoutState kws) path tokens of
-    Left errs -> do
-      confess errs
-    Right result -> pure result
+    Right tokens -> pure tokens
+    Left errs -> throwError
+      [Error.CannotParse path (Text.pack $ show errs)]
 
 defaultKws :: [Keyword]
-defaultKws = [Do, Let, Of, Where]
+defaultKws = [Module]
 
 layoutKeyword :: Layoutize (Located (Token 'NonLayout))
-layoutKeyword =
-  do
-    kws <- getLayoutKeywords
-    kw <- tokenPrim (go kws)
-    pushState DoNewLayoutContext
-    pure kw
-  where
-    go :: [Keyword] -> Located (Token 'Layout) -> Maybe (Located (Token 'NonLayout))
-    go kws (At loc token) =
-      case token of
-        SpecialWord kw ->
-          if kw `elem` kws then
-            Just $ At loc (Keyword kw)
-          else
-            Nothing
-        _ -> Nothing
+layoutKeyword = do
+  kws <- getLayoutKeywords
+  let
+    go (Located.At loc token) = case token of
+      SpecialWord kw ->
+        if kw `elem` kws then
+          Just $ Located.At loc (Keyword kw)
+        else
+          Nothing
+      _ -> Nothing
+  kw <- tokenPrim go
+  pushState DoNewLayoutContext
+  pure kw
 
 newLayoutContext :: Layoutize (Located (Token 'NonLayout))
 newLayoutContext = do
-  At loc _ <- located indentation
+  Located.At loc _ <- located indentation
   ctx <- getContext
   indent <- getIndentLevel
   case ctx of
     n:_ | indent <= n -> do
       pushState (DoEmptyLayout loc)
-      pure $ At loc Begin
+      pure $ Located.At loc Begin
     _ -> do
       pushContext indent
-      pure $ At loc Begin
+      pure $ Located.At loc Begin
 
-newline :: Span -> Layoutize (Located (Token 'NonLayout))
+newline :: Located.Span -> Layoutize (Located (Token 'NonLayout))
 newline loc = do
   indent <- compareIndent
   case indent of
     GT -> anyToken
-    EQ -> pure (At loc Newline)
+    EQ -> pure (Located.At loc Newline)
     LT -> do
       popContext
       pushState (DoNewline loc)
-      pure (At loc End)
+      pure (Located.At loc End)
 
 compareIndent :: Layoutize Ordering
 compareIndent = do
@@ -122,18 +116,15 @@ compareIndent = do
     n:_ -> flip compare n <$> getIndentLevel
   
 indentation :: Layoutize ()
-indentation =
-  do
-    At loc n <- located $ tokenPrim go
-    setIndentLevel n
-  where
+indentation = do
+  let
     go :: Located (Token 'Layout) -> Maybe Int
     go token =
-      case unLoc token of
+      case Located.unLoc token of
         Indent n -> Just n
         _        -> Nothing
-      
-type Layoutize = Parsec [Located (Token 'Layout)] LayoutState
+  Located.At loc n <- located $ tokenPrim go
+  setIndentLevel n
 
 data LayoutState = LayoutState
   {
@@ -146,8 +137,8 @@ data LayoutState = LayoutState
 data LayoutControl
   = Zero
   | DoNewLayoutContext
-  | DoNewline Span
-  | DoEmptyLayout Span
+  | DoNewline Located.Span
+  | DoEmptyLayout Located.Span
 
 popState :: Layoutize LayoutControl
 popState = do
@@ -196,22 +187,24 @@ initLayoutState layoutKeywords =
 
 anyToken :: Layoutize (Located (Token 'NonLayout))
 anyToken = tokenPrim
-  (\(At loc token) -> At loc <$> Token.fromLayout token)
+  (\(Located.At loc token) -> Located.At loc <$> Token.fromLayout token)
 
-satisfy :: (Show token, Monad m) =>
-  (Located token -> Bool) ->
-  ParsecT [Located token] u m (Located token)
+satisfy ::
+  (Show token, Monad m)
+  => (Located token -> Bool)
+  -> ParsecT [Located token] u m (Located token)
 
 satisfy predicate = tokenPrim
   (\token -> if predicate token then Just token else Nothing)
 
-tokenPrim :: (Show token, Monad m) =>
-  (Located token -> Maybe a) ->
-  ParsecT [Located token] u m a
+tokenPrim ::
+  (Show token, Monad m)
+  => (Located token -> Maybe a)
+  -> ParsecT [Located token] u m a
 
 tokenPrim = Text.Parsec.tokenPrim show advance
   where
     advance sourcePos _ tokens =
       case tokens of
         [] -> sourcePos
-        At origin _ : _ -> beginningOf origin
+        Located.At origin _ : _ -> beginningOf origin

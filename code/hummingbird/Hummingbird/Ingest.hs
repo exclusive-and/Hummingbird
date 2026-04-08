@@ -1,19 +1,15 @@
-module Hummingbird.Rules where
+module Hummingbird.Ingest where
 
-import Birds.Prelude
-
-import Control.Monad
-import Control.Monad.Trans
-import Data.Bifunctor
-import Data.Foldable
 import Data.HashSet (HashSet)
 import Data.HashSet qualified as HashSet
+import Data.IORef
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Text qualified as Text
 import Data.Text.Rope (Rope)
 import Data.These
-import Prettyprinter qualified as Pretty
+import Prelude
+import Prettyprinter
 import System.FilePath
 
 import Fetch (
@@ -29,64 +25,16 @@ import Fetch.Mapped qualified as Mapped
 import Hummingbird.Builtin (builtins)
 import Hummingbird.Codebase (Codebase)
 import Hummingbird.Codebase qualified as Codebase
+import Hummingbird.Elaboration.Rename (RnMap, runRename, renameBinds)
 import Hummingbird.Error (Error)
 import Hummingbird.Error qualified as Error
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
 import Hummingbird.Query (Query (..))
-import Hummingbird.Rename (RnMap, runRename, renameBinds)
 import Hummingbird.Surface qualified as Surface
 import Hummingbird.Var (Var (Prim))
 import Hummingbird.VarMap (VarMap)
 import Hummingbird.VarMap qualified as VarMap
-
-rules ::
-  ReadFile
-  -> (FilePath -> ParseModuleSource)
-  -> GenRules
-      (Writer [Error] (Writer TaskKind Query))
-      Query
-
-rules readFile_ parse_ (Writer (Writer query)) =
-  case query of
-    GetCodebase ->
-      noError $ pure Codebase.empty
-
-    GetModule modName codebase ->
-      noError $
-      case Codebase.lookupModule modName codebase of
-        Nothing -> do
-          pure $ Surface.Module modName []
-        Just found -> pure $ fst found
-
-    ModuleDefines modName codebase ->
-      noError $
-      case Codebase.lookupModule modName codebase of
-        Nothing -> pure Map.empty
-        Just found -> pure $ snd found
-
-    ModuleDefinitions modName codebase ->
-      noError $ do
-        modDefn <- fetch $ GetModule modName codebase
-        pure $ Surface.decls modDefn
-
-    IngestDecl modName decl codebase ->
-      noError $ ingestDecl modName decl codebase
-
-    FileText path ->
-      input $ getFileText readFile_ path
-
-    FileRope path ->
-      input $ getFileRope readFile_ path
-
-    ParsedFile path ->
-      noError $ parseModuleFile parse_ path
-
-    IngestFile path codebase ->
-      noError $ ingestFile path codebase
-
-    IngestDirectory rootPath codebase ->
-      noError $ ingestDirectory rootPath codebase
 
 type ReadFile = FilePath -> IO (Either Rope Text)
 
@@ -104,12 +52,11 @@ getFileRope readFile_ path = do
     Left rope -> pure rope
     Right text -> undefined
 
-type Ingest = forall cdb cdb'.
-  Codebase cdb -> Task Query IO (Maybe [Error], Codebase cdb')
+type Ingest = Codebase -> Task Query IO (Maybe [Error])
 
 ingestDecl :: Name.Module -> Surface.Declaration Name -> Ingest
 ingestDecl modName decl codebase = do
-  pure (Nothing, Codebase.clone codebase)
+  pure Nothing
   -- TODO: Implement ingestion for pre-parsed declarations.
 
 type ParseModuleSource = Text -> Either [Error] (Surface.Module Name)
@@ -126,25 +73,24 @@ ingestFile :: FilePath -> Ingest
 ingestFile path codebase = do
   parsed <- fetch $ ParsedFile path
   case parsed of
-    Left errs -> pure (Just errs, Codebase.clone codebase)
+    Left errs -> pure $ Just errs
     Right (Surface.Module modName decls) -> do
       let
         (errs, renamed) = renameMod modName decls
       case renamed of
-        Nothing -> pure (errs, Codebase.clone codebase)
-        Just (rnMap, renamed') -> do
+        Nothing -> pure errs
+        Just (rnMap, renamed') -> liftIO $ do
           let modRenamed = Surface.Module modName $ map (uncurry Surface.Fun) renamed'
-          pure (errs, Codebase.insertModule modName modRenamed rnMap codebase)
+          Codebase.addModule modName modRenamed rnMap codebase
+          pure errs
   where
     prims = Prim <$> builtins
 
     renameMod modName decls =
       case runRename prims (`rename` decls) of
-        This msgs -> (wrapRnMsg modName msgs, Nothing)
+        This msgs -> (Just msgs, Nothing)
         That result -> (Nothing, Just result)
-        These msgs result -> (wrapRnMsg modName msgs, Just result)
-
-    wrapRnMsg modName msg = Just [Error.Rename modName msg]
+        These msgs result -> (Just msgs, Just result)
 
     rename inScope decls = renameBinds inScope $ binds [] decls
 
@@ -155,21 +101,5 @@ ingestFile path codebase = do
 
 ingestDirectory :: FilePath -> Ingest
 ingestDirectory rootPath codebase = do
-  pure (Nothing, Codebase.clone codebase)
+  pure Nothing
   -- TODO: Implement recursive ingestion for directories.
-
-type Result a = ((a, TaskKind), [Error])
-
-data TaskKind
-  = Input
-  | NonInput
-  deriving (Show)
-
-input :: (Functor m) => m a -> m (Result a)
-input = fmap ((, mempty) . (, Input))
-
-noError :: (Functor m) => m a -> m (Result a)
-noError = fmap ((, mempty) . (, NonInput))
-
-nonInput :: (Functor m) => m (a, [Error]) -> m (Result a)
-nonInput = fmap (first (, NonInput))

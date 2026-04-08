@@ -26,20 +26,12 @@ module Fetch
   handle,
 ) where
 
-import Birds.Prelude
-
-import Control.Monad
-import Control.Monad.Fix
 import Control.Monad.Reader
-import Control.Monad.Trans
-import Data.Bifunctor
-import Data.Foldable
+import Data.Coerce
 import Data.Hashable
-import Data.HashMap.Lazy (HashMap)
-import Data.HashMap.Lazy qualified as HashMap
-import Data.HashSet (HashSet)
-import Data.HashSet qualified as HashSet
+import Data.Kind
 import Data.These
+import Prelude
 
 import Fetch.Monad
 
@@ -50,7 +42,7 @@ newtype Fetch q m = Fetch (forall a. q a -> m a)
 newtype Task q m a = Task {
     unTask :: ReaderT (Fetch q m) m a
   }
-  deriving (Functor, Applicative, Monad, MonadIO, MonadFix)
+  deriving newtype (Functor, Applicative, Monad, MonadIO, MonadFix)
 
 instance (Monad m) => MonadFetch q (Task q m) where
   fetch key = Task $
@@ -60,7 +52,7 @@ instance (Monad m) => MonadFetch q (Task q m) where
 type Rules q = GenRules q q
 
 -- | Inference rules for @p@-questions that can depend on @q@-questions.
-type GenRules p q = forall a. p a -> Task q IO a
+type GenRules p q = forall (a :: Type). p a -> Task q IO a
 
 runTask :: Rules q -> Task q IO a -> IO a
 runTask rules (Task task) =

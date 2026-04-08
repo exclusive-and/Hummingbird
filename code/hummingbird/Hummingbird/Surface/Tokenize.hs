@@ -20,19 +20,21 @@ module Hummingbird.Surface.Tokenize
   unqualified,
   visible,
   word,
-)
-where
-
-import Birds.Prelude
+) where
 
 import Control.Applicative
+import Control.Monad
 import Control.Monad.Chronicle
+import Control.Monad.Except
 import Data.Char
 import Data.Functor
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Prelude
 import Text.Parsec qualified
 
+import Hummingbird.Error (Error)
+import Hummingbird.Error qualified as Error
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
 import Hummingbird.Surface.Located (Located (..))
@@ -91,9 +93,9 @@ type Tokenize = Parsec Text ()
 
 instance MonadToken (Token 'Layout) Tokenize where
   tokenLex = choice [
-      located visible,
-      newline,
-      space *> tokenLex
+      located visible
+    , newline
+    , space *> tokenLex
     ]
 
   tokensLex = reverse <$> go []
@@ -108,7 +110,7 @@ instance MonadToken (Token 'Layout) Tokenize where
 
 -- | Convert a raw text input into a stream of tokens.
 tokenize ::
-  (MonadChronicle ParseError m)
+  (MonadError [Error] m)
   => Int
   -> FilePath
   -> Text
@@ -116,8 +118,9 @@ tokenize ::
 
 tokenize line path text =
   case parse tokensLex path text of
-    Left errs -> confess errs
-    Right result -> pure result
+    Right tokens -> pure tokens
+    Left errs -> throwError
+      [Error.CannotParse path (Text.pack $ show errs)]
 
 {-# INLINE tokenize #-}
 

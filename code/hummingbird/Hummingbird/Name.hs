@@ -1,48 +1,86 @@
 module Hummingbird.Name where
 
-import Birds.Prelude
-
+import Data.Binary
 import Data.Hashable
+import Data.String
 import Data.Text qualified as Text
+import Prelude
+import Prettyprinter
 
-data Module
-  = Repl
-  | Module Text
-  deriving (Generic, Eq, Ord, Show)
+-- |
+newtype Constructor = Constructor Name
+  deriving stock
+    ( Eq
+    , Generic
+    , Ord
+    , Show
+    )
+  deriving newtype (Binary, Hashable, Pretty)
 
-instance Hashable Module
+-- |
+data Module = Repl | Module Text
+  deriving stock
+    ( Eq
+    , Generic
+    , Ord
+    , Show
+    )
+  deriving anyclass (Hashable)
 
-instance IsString Module where
-  fromString = Module . fromString @Text
+-- |
+newtype Name = Name Text
+  deriving stock
+    ( Eq
+    , Generic
+    , Ord
+    , Show
+    )
+  deriving newtype (Binary, Hashable, Pretty)
+
+-- |
+data Qualified = Qualified {
+    moduleName :: !Module
+  , unqualName :: !Name
+  }
+  deriving stock
+    ( Eq
+    , Generic
+    , Ord
+    , Show
+    )
+  deriving anyclass (Hashable)
+
+-- |
+newtype Surface = Surface Text
+  deriving stock
+    ( Eq
+    , Generic
+    , Ord
+    , Show
+    )
+  deriving newtype (Hashable, Pretty)
 
 instance Pretty Module where
   pretty = \case
     Repl -> "[REPL]"
     Module moduleName -> pretty moduleName
 
-newtype Name = Name Text
-  deriving stock (Generic, Eq, Ord, Show)
-  deriving newtype (Pretty)
-
-instance Hashable Name
-
-deriving newtype instance IsString Name
-
-newtype Constructor = Constructor Text
-  deriving stock (Generic, Eq, Ord, Show)
-  deriving newtype (Pretty)
-
-instance Hashable Constructor
+instance Pretty Qualified where
+  pretty = \case
+    Qualified Repl name ->
+      pretty Repl <> "." <> pretty name
+    Qualified (Module moduleName) name ->
+      if Text.null moduleName then
+        pretty name
+      else
+        pretty moduleName <> "." <> pretty name
 
 deriving newtype instance IsString Constructor
+deriving newtype instance IsString Name
+deriving newtype instance IsString Surface
 
-data Qualified = Qualified {
-    moduleName :: !Module,
-    unqualName :: !Name
-  }
-  deriving (Generic, Eq, Ord, Show)
-
-instance Hashable Qualified
+instance IsString Module where
+  fromString = Module . fromString @Text
 
 instance IsString Qualified where
   fromString str =
@@ -55,13 +93,3 @@ instance IsString Qualified where
           Qualified (Module mempty) (Name name)
         Just moduleName ->
           Qualified (Module moduleName) (Name name)
-
-instance Pretty Qualified where
-  pretty = \case
-    Qualified Repl name ->
-      pretty Repl <> "." <> pretty name
-    Qualified (Module moduleName) name ->
-      if Text.null moduleName then
-        pretty name
-      else
-        pretty moduleName <> "." <> pretty name
