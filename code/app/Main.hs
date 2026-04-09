@@ -3,23 +3,39 @@ module Main where
 import Control.Exception
 import Data.IORef
 import Data.IORef.Extra (atomicModifyIORef_)
+import Data.Text qualified as Text
+import GHC.Conc
+  ( setUncaughtExceptionHandler
+  )
 import GHC.IO
 import GHC.IO.Handle
 import Prelude
 import Prettyprinter
+import Prettyprinter.Render.Terminal
 
+import System.Exit
 import System.IO as IO
 
 import Hummingbird.Error as Error
 import Hummingbird.Main
 import Hummingbird.Repl
-import Hummingbird.Version
+import Hummingbird.Version as Version
 
 main :: IO ()
 main =
   do
-  _ <- newIORef []
-  
+  setUncaughtExceptionHandler \uncaught -> do
+    let
+      displayed =
+        displayException uncaught
+          & Text.pack
+          & Text.lines
+          & vcat . map pretty
+    hPutDoc stderr $ hang 4 $ vcat [
+        annotate (color Red <> underlined) "catastrophic uncaught exception:"
+      , displayed
+      ]
+
   --
   -- Make sure standard outputs are properly buffered so that diagnostics and
   -- error reports are legible.
