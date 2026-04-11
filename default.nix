@@ -18,10 +18,12 @@ let
       ansi-terminal
       base
       binary
+      brick
       bytestring
       containers
       crypton
       filepath
+      exceptions_0_10_12
       hashable
       haskeline
       monad-chronicle
@@ -36,6 +38,7 @@ let
       these
       transformers
       unordered-containers
+      vty
     ];
   };
 in
