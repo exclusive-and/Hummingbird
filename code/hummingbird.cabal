@@ -1,8 +1,6 @@
 cabal-version: 3.4
-
 name: hummingbird
 version: 0
-
 build-type: Simple
 
 common common-language
@@ -48,10 +46,12 @@ executable hummingbird
   import: common-language
   hs-source-dirs: ./app
   main-is: Main.hs
+  ghc-options: -threaded
   build-depends:
     , base ^>= 4.21
     , crypton
     , directory
+    , exceptions
     , filepath
     , hummingbird
     , mtl

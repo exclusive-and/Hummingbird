@@ -1,20 +1,21 @@
 module Main where
 
-import Control.Exception
+import Control.Concurrent
+import Control.Monad
+import Control.Monad.Catch
 import Data.IORef
 import Data.IORef.Extra (atomicModifyIORef_)
 import Data.Text qualified as Text
-import GHC.Conc
-  ( setUncaughtExceptionHandler
-  )
-import GHC.IO
-import GHC.IO.Handle
+import Data.Typeable
 import Prelude
 import Prettyprinter
 import Prettyprinter.Render.Terminal
 
+import GHC.Conc.Sync (setUncaughtExceptionHandler)
+
+import System.Environment
 import System.Exit
-import System.IO as IO
+import System.IO
 
 import Hummingbird.Error as Error
 import Hummingbird.Main
@@ -53,4 +54,4 @@ main =
       (_, errors) <- run (replTask version)
       Error.reportAll errors
   
-  catch @[Error] critical Error.reportAll
+  catch @_ @[Error] critical Error.reportAll
