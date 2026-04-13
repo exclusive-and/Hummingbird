@@ -1,48 +1,54 @@
-args0@{
+{
   lib
-
-  # The version of GHC that will be used for the build.
+# The version of GHC that will be used for the build.
 , ghcVersion ? "ghc912"
-
 , nixpkgs
-
-, haskellPackages ?
-    nixpkgs.haskell.packages.${ghcVersion}
-
+, haskellPackages ? nixpkgs.haskell.packages.${ghcVersion}
 , ...
-}:
+}@outerArgs:
+
 {
   name
+, pname ? name
 , version
 , src
 , depends ? _: []
-}:
-let
-  depsSystem = [
-    haskellPackages.cabal-install
-    haskellPackages.haskell-language-server
-  ];
+, ...
+}@projectArgs:
 
-  depsTools = [
-    haskellPackages.cabal-install
-  ];
+lib.fix (
+  drv:
+  haskellPackages.mkDerivation (
+    let
+      depsHaskell = depends haskellPackages;
 
-  drv = haskellPackages.mkDerivation {
-    pname = name;
-    inherit src version;
+      depsSystem = [
+        haskellPackages.cabal-install
+        haskellPackages.haskell-language-server
+      ];
 
-    libraryHaskellDepends = depends haskellPackages;
-    librarySystemDepends = depsSystem;
+      depsTools = [
+        haskellPackages.cabal-install
+      ];
+    in
+    {
+      inherit pname version;
+      inherit src;
 
-    passthru = {
-      inherit ghcVersion haskellPackages;
+      executableHaskellDepends = depsHaskell;
+      libraryHaskellDepends = depsHaskell;
 
-      devShell = haskellPackages.shellFor {
-        packages = _: [ drv ];
-        buildInputs = depsSystem;
-        nativeBuildInputs = depsTools;
+      librarySystemDepends = depsSystem;
+
+      passthru = {
+        devShell = haskellPackages.shellFor {
+          packages = _: [ drv ];
+          buildInputs = depsSystem;
+          nativeBuildInputs = depsTools;
+        };
+
+        inherit ghcVersion haskellPackages;
       };
-    };
-  };
-in
-  drv
+    }
+  )
+)
