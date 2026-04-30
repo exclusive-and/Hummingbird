@@ -5,6 +5,8 @@ import Control.Monad
 import Control.Monad.Catch
 import Data.IORef
 import Data.IORef.Extra (atomicModifyIORef_)
+import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty qualified as NonEmpty
 import Data.Text qualified as Text
 import Data.Typeable
 import Prelude
@@ -27,15 +29,17 @@ main =
   do
   setUncaughtExceptionHandler \uncaught -> do
     let
-      displayed =
+      alert :: Doc AnsiStyle
+      alert =
+        "catastrophic uncaught exception"
+          & annotate (color Red <> underlined)
+    let
+      exceptionMsg =
         displayException uncaught
           & Text.pack
           & Text.lines
           & vcat . map pretty
-    hPutDoc stderr $ hang 4 $ vcat [
-        annotate (color Red <> underlined) "catastrophic uncaught exception:"
-      , displayed
-      ]
+    hPutDoc stderr $ hang 4 $ vcat [alert, exceptionMsg]
 
   --
   -- Make sure standard outputs are properly buffered so that diagnostics and
