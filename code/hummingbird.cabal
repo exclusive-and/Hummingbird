@@ -109,7 +109,10 @@ library
     , bytestring
     , containers
     , crypton
+    , dependent-sum
+    , dependent-sum-template
     , filepath
+    , exceptions
     , hashable
     , haskeline
     , monad-chronicle
@@ -118,6 +121,7 @@ library
     , prettyprinter
     , prettyprinter-ansi-terminal
     , shellmet
+    , some
     , template-haskell
     , text
     , text-rope
