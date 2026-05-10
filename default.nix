@@ -1,8 +1,10 @@
-args@{
+{
   sources ? import ./nix/sources.nix
 , ...
-}:
+}@args:
+
 let
+
   defaultArgs = {
     lib = import "${sources.nixpkgs}/lib";
     nixpkgs = import sources.nixpkgs {};
@@ -10,10 +12,8 @@ let
 
   project = {
     name = "hummingbird";
-    version = "0";
-
     src = ./code;
-
+    version = "0";
     depends = haskellPackages: with haskellPackages; [
       ansi-terminal
       base
@@ -41,5 +41,6 @@ let
       vty
     ];
   };
+
 in
   import ./scripts/build.nix (defaultArgs // args) project
