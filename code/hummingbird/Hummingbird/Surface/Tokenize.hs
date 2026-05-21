@@ -120,7 +120,7 @@ tokenize line path text =
   case parse tokensLex path text of
     Right tokens -> pure tokens
     Left errs -> throwError
-      [Error.CannotParse path (Text.pack $ show errs)]
+      [Error.CannotParse ("tokenization: " ++ path) (Text.pack $ show errs)]
 
 {-# INLINE tokenize #-}
 

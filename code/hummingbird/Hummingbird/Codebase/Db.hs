@@ -1,0 +1,66 @@
+module Hummingbird.Codebase.Db where
+
+import Control.Concurrent
+import Control.Monad
+import Control.Monad.Catch
+import Data.Binary
+import Data.ByteString (ByteString)
+import Data.IORef
+import Data.IORef.Extra (atomicModifyIORef_)
+import Data.Kind
+import Data.Map (Map)
+import Data.Map qualified as Map
+import Data.Map.Justified qualified as Justified
+import Prelude
+import Prettyprinter
+
+import Crypto.Hash (SHA3_512 (..))
+import Crypto.Hash qualified
+import Crypto.Hash.Generic qualified
+
+import Hummingbird.Codebase.Hash as Hash
+import Hummingbird.Error as Error
+import Hummingbird.Name as Name
+import Hummingbird.Surface qualified as Surface
+import Hummingbird.Var (Var)
+
+-- |
+data Codebase = Codebase {
+    cdbModules :: IORef (Map Name.Module (Surface.Module Var, Map Name Var))
+  , cdbNameMap :: IORef (Map Name Hash)
+  }
+
+-- |
+init :: (MonadIO m) => m Codebase
+init =
+  liftIO do
+    cdbModules <- newIORef Map.empty
+    cdbNameMap <- newIORef Map.empty
+    pure Codebase{..}
+
+getNameMap :: (MonadIO m) => Codebase -> m (Map Name Hash)
+getNameMap Codebase{cdbNameMap} =
+  liftIO do
+    readIORef cdbNameMap
+
+-- |
+lookupModule ::
+  (MonadIO m)
+  => Name.Module
+  -> Codebase
+  -> m (Maybe (Surface.Module Var, Map Name Var))
+lookupModule name Codebase{cdbModules} =
+  liftIO do
+    Map.lookup name <$> readIORef cdbModules
+
+-- |
+addModule ::
+  (MonadIO m)
+  => Name.Module
+  -> Surface.Module Var
+  -> Map Name Var
+  -> Codebase
+  -> m ()
+addModule name mod rnMap Codebase{cdbModules} =
+  liftIO do
+    atomicModifyIORef_ cdbModules (Map.insert name (mod, rnMap))

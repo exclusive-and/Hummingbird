@@ -59,6 +59,37 @@ featherP = do
       Surface.Fun name <$ expect Token.Equals <*> someTermsP
     , Surface.Sig name <$ expect Token.Colon <*> funTyP
     ]
+
+parseDeclOrExpr ::
+  (MonadError [Error] m)
+  => FilePath
+  -> [Located (Token 'NonLayout)]
+  -> m (Maybe Name, Surface.Term Name)
+parseDeclOrExpr path tokens = do
+  let
+    tokens' = concat [
+        [Located.At Located.emptySpan Token.Begin]
+      , tokens
+      , [Located.At Located.emptySpan Token.End]
+      ]
+  case Parsec.parse declOrExprP path tokens' of
+    Right parsed -> pure parsed
+    Left errs -> throwError
+      [Error.CannotParse path (Text.pack $ show errs)]
+
+declOrExprP :: P (Maybe Name, Surface.Term Name)
+declOrExprP =
+  expect Token.Begin
+    *> try (try declP_ <|> try ((Nothing,) <$> termsP_))
+  where
+    termsP_ = termsP
+      <* (expect Token.Newline <|> expect Token.End)
+
+    declP_ = do
+      name <- nameP
+      expect Token.Equals
+      (Just name,) <$> termsP_
+
 {-
 bindP :: Name -> P (Name)
 bindP name =

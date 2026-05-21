@@ -7,6 +7,7 @@ module Data.Map.Justified
   withMap,
 ) where
 
+import Data.Coerce
 import Data.Map qualified
 import GHC.Generics
 import Prelude hiding (lookup)
@@ -44,3 +45,4 @@ lookup (Key k) (Map ordMap) =
 
 withMap :: Data.Map.Map k v -> (Map s k v -> r) -> r
 withMap ordMap cont = cont (Map ordMap)
+

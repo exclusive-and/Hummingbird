@@ -64,7 +64,7 @@ layoutize kws path tokens =
   case runParser tokensLex (initLayoutState kws) path tokens of
     Right tokens -> pure tokens
     Left errs -> throwError
-      [Error.CannotParse path (Text.pack $ show errs)]
+      [Error.CannotParse ("layout: " ++ path) (Text.pack $ show errs)]
 
 defaultKws :: [Keyword]
 defaultKws = [Module]

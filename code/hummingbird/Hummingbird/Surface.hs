@@ -8,6 +8,7 @@ import Data.Text qualified as Text
 import Prelude
 import Prettyprinter
 
+import Hummingbird.Builtin
 import Hummingbird.Literal (Literal)
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
@@ -20,9 +21,11 @@ data Module word = Module {
 data Declaration word
   = Fun word (Term word)
   | Sig word (Type word)
+  deriving (Eq, Generic, Show)
 
 data Term word
   = Lit Literal
+  | Prim Builtin
   | Word word
   | Lambda word (Term word)
   | Match [Alt word]
@@ -51,6 +54,7 @@ instance (Binary word) => Binary (Type word)
 instance (Hashable word) => Hashable (Term word)
 instance (Hashable word) => Hashable (Alt word)
 instance (Hashable word) => Hashable (Type word)
+instance (Hashable word) => Hashable (Declaration word)
 
 instance FromInteger (Term word) where
   fromInteger = Lit . fromInteger @Literal
@@ -61,14 +65,9 @@ instance IsString (Term word) where
 instance (Pretty word) => Pretty (Term word) where
   pretty = \case
     Lit literal -> pretty literal
+    Prim builtin -> pretty builtin
     Word word -> pretty word
-    Lambda bndr body ->
-      hsep [
-          "\\"
-        , pretty bndr
-        , "->"
-        , pretty body
-        ]
+    Lambda bndr body -> "\\" <> pretty bndr <+> "->" <+> pretty body
     Match alts ->
       hang 2 $ vcat ("match" : map pretty alts)
     Quoted quoted -> brackets $ pretty quoted

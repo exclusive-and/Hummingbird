@@ -19,9 +19,12 @@ import System.Environment
 import System.Exit
 import System.IO
 
+import Brick.BChan
+
 import Hummingbird.Error as Error
 import Hummingbird.Main
 import Hummingbird.Repl
+import Hummingbird.Repl.Tui (tuiMain, tuiTask)
 import Hummingbird.Version as Version
 
 main :: IO ()
@@ -52,10 +55,13 @@ main =
     version =
       Version "hummingbird" ("", "")
 
-  let
-    critical :: IO ()
-    critical = do
-      (_, errors) <- run (replTask version)
-      Error.reportAll errors
+  chan <- newChan
+  bchan <- newBChan 2
   
-  catch @_ @[Error] critical Error.reportAll
+  void $ forkIO $ catch @_ @[Error]
+    do
+      (_, errors) <- run (tuiTask version chan bchan)
+      Error.reportAll errors
+    (const $ pure ())
+
+  tuiMain chan bchan

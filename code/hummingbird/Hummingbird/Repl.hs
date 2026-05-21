@@ -1,6 +1,9 @@
 module Hummingbird.Repl where
 
-import Control.Exception
+import Control.Concurrent
+import Control.Monad
+import Control.Monad.Catch
+import Control.Monad.Chronicle
 import Data.IORef
 import Data.IORef.Extra (atomicModifyIORef_)
 import Data.Map (Map)
@@ -11,18 +14,9 @@ import Data.Text.IO qualified as Text
 import Prelude
 import Prettyprinter
 
-import Fetch
-  ( fetch
-  , GenRules
-  , Rules
-  , Task
-  , writer
-  , Writer (..)
-  )
-import Fetch qualified
-
 import Hummingbird.Codebase as Codebase
 import Hummingbird.Error as Error
+import Hummingbird.Fetch as Fetch
 import Hummingbird.Ingest
 import Hummingbird.Interpret (interpret)
 import Hummingbird.Name as Name
@@ -30,33 +24,19 @@ import Hummingbird.Query
 import Hummingbird.Repl.Command
 import Hummingbird.Repl.Console
 import Hummingbird.Surface qualified as Surface
-import Hummingbird.Surface.Layoutize (defaultKws, layoutize)
-import Hummingbird.Surface.Parse (parse)
-import Hummingbird.Surface.Tokenize (tokenize)
 import Hummingbird.VarMap qualified as VarMap
 import Hummingbird.Version (Version)
 
-replTask :: Version -> Task Query IO ()
-replTask version = do
-  let
-    modName :: Name.Module
-    modName = "Example"
-  let
-    srcFilePath :: FilePath
-    srcFilePath =  "code/hummingbird/examples/test"
-  codebase <- fetch InitCodebase
-  ingested <- fetch $ IngestFile srcFilePath
-  case ingested of
-    Nothing -> pure ()
-    Just errs -> liftIO $ throwIO errs
-  modGuts <- fetch $ GetModule modName
-  liftIO $ print $ pretty modGuts
-  rnMap <- fetch $ ModuleDefines modName
-  modDecls <- fetch $ ModuleDefinitions modName
-  case Map.lookup "main" rnMap of
-    Nothing -> pure ()
-    Just entry -> liftIO $ do
-      let decls = map (\(Surface.Fun name term) -> (name, term)) modDecls
-      result <- interpret entry (VarMap.fromList decls)
-      print $ pretty result
-  pure ()
+replTask :: Version -> Chan Cmd -> Task Query (ChronicleT [Error] IO) ()
+replTask version cmdChan = go
+  where
+    go = do
+      cmd <- liftIO $ readChan cmdChan
+      case cmd of
+        ShutdownRepl -> pure ()
+        InterpretLine exprText -> do
+          ingested <- memento $ fetch $ IngestRepl exprText
+          case ingested of
+            Left errors -> liftIO $ throwM errors
+            Right _result -> go
+        _ -> go

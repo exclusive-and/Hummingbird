@@ -53,6 +53,15 @@ instance Pretty Span where
           ]
     ]
 
+emptySpan :: Span
+emptySpan = Span {
+    name = ""
+  , beginLine = 0
+  , beginColumn = 0
+  , endLine = 0
+  , endColumn = 0
+  }
+
 beginningOf :: Span -> Span
 beginningOf span = span {
     endLine = span.beginLine,
