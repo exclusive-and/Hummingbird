@@ -12,24 +12,26 @@ import Prelude
 import Prettyprinter
 
 import Hummingbird.Codebase.Hash as Hash
-import Hummingbird.Codebase.Stages as Stages
 import Hummingbird.Error as Error
 import Hummingbird.Name as Name
 import Hummingbird.Surface qualified as Surface
 
-type HoleId = Int
+type data Stage
+  = Parsed
+  | Renamed
+  | Typechecked
 
-data CodePatch (stage :: KStage) where
+data CodePatch (a :: Stage) where
   -- | Add some parsed declarations to the codebase.
   AddDecls ::
     [Error]
     -> [Surface.Declaration Name]
-    -> CodePatch Stages.Parsed
+    -> CodePatch Parsed
   -- | Add some parsed expressions to the codebase.
   AddExprs ::
     [Error]
     -> [Surface.Term Name]
-    -> CodePatch Stages.Parsed
+    -> CodePatch Parsed
   -- | Add (content-addressed) terms to the codebase.
   AddHashedTerms ::
     [Error]
@@ -37,7 +39,7 @@ data CodePatch (stage :: KStage) where
     -> Set Hash
     -> Map Hash (Surface.Term Hash)
     -> Map Hash (Surface.Type Hash)
-    -> CodePatch Stages.Hashed
+    -> CodePatch Renamed
   -- | Add some fully typechecked terms to the codebase.
   AddCheckedTerms ::
     [Error]
@@ -45,7 +47,7 @@ data CodePatch (stage :: KStage) where
     -> Set Hash
     -> Map Hash (Surface.Term Hash)
     -> Map Hash (Surface.Type Hash)
-    -> CodePatch Stages.Typechecked
+    -> CodePatch Typechecked
   -- |
   {-
   FillHoles ::

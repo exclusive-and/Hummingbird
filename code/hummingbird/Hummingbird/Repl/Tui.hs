@@ -62,7 +62,7 @@ data UIState = UIState {
 data Event
   = StackChanged
   | ReplError [Error]
-  | ReplIngested (CodePatch Hashed)
+  | ReplIngested (CodePatch Renamed)
   deriving (Eq, Show)
 
 data Config e = Config {

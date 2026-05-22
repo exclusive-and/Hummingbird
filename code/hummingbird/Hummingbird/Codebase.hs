@@ -1,21 +1,20 @@
 module Hummingbird.Codebase
 (
   Codebase,
+  Hash,
   CodePatch
     ( AddDecls
     , AddExprs
     , AddHashedTerms
     , AddCheckedTerms
     ),
-  Hash,
-  KStage
+  Stage
     ( Parsed
-    , Hashed
+    , Renamed
     , Typechecked
     ),
 ) where
 
 import Hummingbird.Codebase.Db (Codebase)
 import Hummingbird.Codebase.Hash (Hash)
-import Hummingbird.Codebase.Patch (CodePatch (..))
-import Hummingbird.Codebase.Stages (KStage (..))
+import Hummingbird.Codebase.Patch (CodePatch (..), Stage (..))

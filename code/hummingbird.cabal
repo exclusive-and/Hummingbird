@@ -79,7 +79,6 @@ library
     Hummingbird.Codebase.Db
     Hummingbird.Codebase.Hash
     Hummingbird.Codebase.Patch
-    Hummingbird.Codebase.Stages
     Hummingbird.Elaboration
     Hummingbird.Elaboration.Context
     Hummingbird.Elaboration.Hash

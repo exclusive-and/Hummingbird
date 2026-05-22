@@ -66,7 +66,7 @@ parseRepl replContents =
     path = "<repl>"
     parse_ = tokenize 0 path >=> layoutize defaultKws path >=> parseDeclOrExpr path
 
-ingestRepl :: Text -> Task Query IO (CodePatch Hashed)
+ingestRepl :: Text -> Task Query IO (CodePatch Renamed)
 ingestRepl replLine = do
   parsed <- fetch $ ParsedRepl replLine
   case parsed of

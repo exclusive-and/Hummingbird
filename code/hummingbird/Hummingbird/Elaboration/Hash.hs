@@ -30,7 +30,7 @@ import Hummingbird.Surface as Surface
 renameDeclTask ::
   Map Name Hash
   -> Surface.Declaration Name
-  -> Task Query IO (CodePatch Hashed)
+  -> Task Query IO (CodePatch Renamed)
 
 renameDeclTask env (Surface.Fun name expr) =
   undefined
@@ -40,7 +40,7 @@ renameDeclTask env (Surface.Sig{}) =
 renameExprTask ::
   Map Name Hash
   -> Surface.Term Name
-  -> Task Query IO (CodePatch Hashed)
+  -> Task Query IO (CodePatch Renamed)
 
 renameExprTask env expr = do
   case snd $ runHashingM (renameTerm expr) env of

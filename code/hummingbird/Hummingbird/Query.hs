@@ -29,9 +29,9 @@ data Query (answer :: Type) where
   -- | What definitions does this module contain?
   ModuleDefinitions :: !Name.Module -> Query [Surface.Declaration Var]
   -- |
-  RenameExpr :: Surface.Term Name -> Query (CodePatch Codebase.Hashed)
+  RenameExpr :: Surface.Term Name -> Query (CodePatch Codebase.Renamed)
   -- |
-  RenameDecl :: Surface.Declaration Name -> Query (CodePatch Codebase.Hashed)
+  RenameDecl :: Surface.Declaration Name -> Query (CodePatch Codebase.Renamed)
   -- | Ingest a parsed surface-language declaration and try to intern
   -- its changes into the codebase.
   IngestDecl ::
@@ -41,7 +41,7 @@ data Query (answer :: Type) where
   -- |
   ParsedRepl :: !Text -> Query (CodePatch Parsed)
   -- |
-  IngestRepl :: !Text -> Query (CodePatch Codebase.Hashed)
+  IngestRepl :: !Text -> Query (CodePatch Codebase.Renamed)
   -- | What is the raw text of this source file?
   FileText :: !FilePath -> Query Text
   -- | What is the rope representation of this source file?
