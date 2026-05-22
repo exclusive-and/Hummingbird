@@ -7,6 +7,8 @@ import Control.Monad.Chronicle
 import Control.Monad.State
 import Data.IORef
 import Data.IORef.Extra (atomicModifyIORef_)
+import Data.Map (Map)
+import Data.Map qualified as Map
 import Data.String
 import Data.Text qualified as Text
 import Prelude
@@ -21,6 +23,7 @@ import Brick.Widgets.Border
 import Graphics.Vty qualified as Vty
 
 import Hummingbird.Codebase as Codebase
+import Hummingbird.Codebase.Patch as Codebase
 import Hummingbird.Error as Error
 import Hummingbird.Fetch as Fetch
 import Hummingbird.Ingest
@@ -62,7 +65,7 @@ data UIState = UIState {
 data Event
   = StackChanged
   | ReplError [Error]
-  | ReplIngested (CodePatch Renamed)
+  | ReplIngested (CodePatch Typechecked)
   deriving (Eq, Show)
 
 data Config e = Config {
@@ -84,11 +87,32 @@ tuiTask version cmdChan bchan = go
       case cmd of
         ShutdownRepl -> pure ()
         InterpretLine exprText -> do
-          fetch (IngestRepl exprText) >>= \case
-            ingested -> do
-              liftIO $ writeBChan bchan (ReplIngested ingested)
-              go
+          fetch (ParsedRepl exprText) >>= applyPatch bchan
+          go
         _ -> go
+
+applyPatch :: BChan Event -> CodePatch a -> Task Query IO ()
+applyPatch bchan = go
+  where
+    go :: forall a. CodePatch a -> Task Query IO ()
+    go (AddDecls [] decls) = do
+      fetch (RenameDecls decls) >>= go
+    go (AddDecls errors _) = do
+      liftIO $ writeBChan bchan $ ReplError errors
+    go (AddExprs [] [expr]) = do
+      fetch (RenameExpr expr) >>= go
+    go (AddExprs errors _) = do
+      liftIO $ writeBChan bchan $ ReplError errors
+    go (AddHashedTerms [] env ok tms tys) = do
+      -- TODO: some sort of typechecking here...
+      go $ AddCheckedTerms [] env ok tms tys
+    go (AddHashedTerms errors _ _ _ _) = do
+      liftIO $ writeBChan bchan $ ReplError errors
+    go patch@(AddCheckedTerms errors env ok tms tys) = do
+      codebase <- fetch InitCodebase
+      liftIO do
+        writeBChan bchan $ ReplIngested patch
+        Codebase.applyChecked codebase patch
 
 app :: Config Event -> Brick.App UIState Event AppName
 app config = Brick.App {

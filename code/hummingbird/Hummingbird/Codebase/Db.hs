@@ -26,22 +26,35 @@ import Hummingbird.Var (Var)
 
 -- |
 data Codebase = Codebase {
-    cdbModules :: IORef (Map Name.Module (Surface.Module Var, Map Name Var))
-  , cdbNameMap :: IORef (Map Name Hash)
+    cdbNameMap :: IORef (Map Name Hash)
+  , cdbTermMap :: IORef (Map Hash (Surface.Term Hash))
+  , cdbModules :: IORef (Map Name.Module (Surface.Module Var, Map Name Var))
   }
 
 -- |
 init :: (MonadIO m) => m Codebase
 init =
   liftIO do
-    cdbModules <- newIORef Map.empty
     cdbNameMap <- newIORef Map.empty
+    cdbTermMap <- newIORef Map.empty
+    cdbModules <- newIORef Map.empty
     pure Codebase{..}
 
 getNameMap :: (MonadIO m) => Codebase -> m (Map Name Hash)
 getNameMap Codebase{cdbNameMap} =
   liftIO do
     readIORef cdbNameMap
+
+insertTerms ::
+  (MonadIO m)
+  => Codebase
+  -> Map Name Hash
+  -> Map Hash (Surface.Term Hash)
+  -> m ()
+insertTerms Codebase{..} names terms =
+  liftIO do
+    atomicModifyIORef_ cdbNameMap (<> names)
+    atomicModifyIORef_ cdbTermMap (<> terms)
 
 -- |
 lookupModule ::

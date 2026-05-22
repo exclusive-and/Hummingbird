@@ -17,8 +17,9 @@ import Prettyprinter
 
 import Hummingbird.Codebase as Codebase
 import Hummingbird.Codebase.Db as Codebase
+import Hummingbird.Codebase.Patch as Codebase
 import Hummingbird.Elaboration.Hash
-  ( renameDeclTask
+  ( renameDeclsTask
   , renameExprTask
   )
 import Hummingbird.Error as Error
@@ -97,9 +98,9 @@ compileRules codebase readFile_ parse_ =
       env <- Codebase.getNameMap codebase
       renameExprTask env expr
     
-    go (RenameDecl decl) = noError do
+    go (RenameDecls decl) = noError do
       env <- Codebase.getNameMap codebase
-      renameDeclTask env decl
+      renameDeclsTask env decl
     
     go (IngestDecl modName decl) =
       noError $ ingestDecl modName decl codebase
@@ -119,6 +120,23 @@ compileRules codebase readFile_ parse_ =
       noError $ ingestDirectory rootPath codebase
   in
     GenRules \(Writer (Writer query)) -> go query
+
+applyPatch :: CodePatch a -> Task Query IO ()
+applyPatch = go
+  where
+    go :: forall a. CodePatch a -> Task Query IO ()
+    go (AddDecls errors decls) = do
+      AddHashedTerms errors' env' ok renamed _ <- fetch $ RenameDecls decls
+      go $ AddHashedTerms (errors ++ errors') env' ok renamed Map.empty
+    go (AddExprs errors [expr]) = do
+      AddHashedTerms errors' env' ok renamed _ <- fetch $ RenameExpr expr
+      go $ AddHashedTerms (errors ++ errors') env' ok renamed Map.empty
+    go (AddHashedTerms errors env ok tms tys) = do
+      -- TODO: some sort of typechecking here...
+      go $ AddCheckedTerms errors env ok tms tys
+    go patch@(AddCheckedTerms errors env ok tms tys) = do
+      codebase <- fetch InitCodebase
+      liftIO $ Codebase.applyChecked codebase patch
 
 -- |
 compileTask :: Version -> Task Query IO ()

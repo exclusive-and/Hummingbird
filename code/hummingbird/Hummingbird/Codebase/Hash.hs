@@ -1,5 +1,7 @@
 module Hummingbird.Codebase.Hash where
 
+import Control.Monad
+import Control.Monad.Fail
 import Data.Binary
 import Data.ByteArray qualified as ByteArray
 import Data.ByteString (ByteString)
@@ -24,7 +26,9 @@ instance Binary Hash where
       Just digest -> pure (Hash digest)
       Nothing     -> fail "Hummingbird.Codebase.Hash.get: could not convert bytestring to hash"
   
-  put (Hash digest) = put @ByteString $ ByteArray.convert digest
+  put (Hash digest) =
+    put @ByteString $ ByteArray.convert digest
 
 instance Pretty Hash where
-  pretty (Hash a) = angles $ pretty (Text.pack $ take 8 $ show a) <> "..."
+  pretty (Hash a) =
+    angles $ pretty (Text.pack $ take 8 $ show a) <> "..."

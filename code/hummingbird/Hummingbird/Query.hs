@@ -31,7 +31,7 @@ data Query (answer :: Type) where
   -- |
   RenameExpr :: Surface.Term Name -> Query (CodePatch Codebase.Renamed)
   -- |
-  RenameDecl :: Surface.Declaration Name -> Query (CodePatch Codebase.Renamed)
+  RenameDecls :: [Surface.Declaration Name] -> Query (CodePatch Codebase.Renamed)
   -- | Ingest a parsed surface-language declaration and try to intern
   -- its changes into the codebase.
   IngestDecl ::
@@ -62,7 +62,7 @@ instance GEq Query where
   ModuleDefines x     `geq` ModuleDefines y     | x == y  = Just Refl
   ModuleDefinitions x `geq` ModuleDefinitions y | x == y  = Just Refl
   RenameExpr x        `geq` RenameExpr y        | x == y  = Just Refl
-  RenameDecl x        `geq` RenameDecl y        | x == y  = Just Refl
+  RenameDecls x       `geq` RenameDecls y       | x == y  = Just Refl
   IngestDecl nm1 decl1 `geq` IngestDecl nm2 decl2
     | nm1 == nm2, decl1 == decl2                          = Just Refl
   ParsedRepl x        `geq` ParsedRepl y        | x == y  = Just Refl
@@ -83,7 +83,7 @@ instance Hashable (Query a) where
     ModuleDefines a -> go 2 a
     ModuleDefinitions a -> go 3 a
     RenameExpr a -> go 4 a
-    RenameDecl a -> go 5 a
+    RenameDecls a -> go 5 a
     IngestDecl a b -> go 5 (a, b)
     ParsedRepl a -> go 6 a
     IngestRepl a -> go 7 a

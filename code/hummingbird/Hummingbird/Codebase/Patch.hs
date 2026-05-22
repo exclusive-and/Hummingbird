@@ -11,6 +11,7 @@ import Data.Typeable
 import Prelude
 import Prettyprinter
 
+import Hummingbird.Codebase.Db as Codebase
 import Hummingbird.Codebase.Hash as Hash
 import Hummingbird.Error as Error
 import Hummingbird.Name as Name
@@ -154,3 +155,10 @@ ppPatchTerms ok terms types =
     (Map.mapWithKey (\k ty -> pretty k <+> "::" <+> pretty ty) types)
     & flip Map.restrictKeys ok
     & Map.elems
+
+applyChecked :: Codebase -> CodePatch Typechecked -> IO ()
+applyChecked cdb (AddCheckedTerms _ names ok terms _) =
+  Codebase.insertTerms
+    cdb
+    (Map.filter (`Set.member` ok) names)
+    (Map.restrictKeys terms ok)

@@ -75,8 +75,8 @@ ingestRepl replLine = do
       case renamed of
         AddHashedTerms errors' names ok terms types ->
           pure $ AddHashedTerms (errors ++ errors') names ok terms types
-    AddDecls errors [decl] -> do
-      renamed <- fetch $ RenameDecl decl
+    AddDecls errors decls -> do
+      renamed <- fetch $ RenameDecls decls
       case renamed of
         AddHashedTerms errors' names ok terms types ->
           pure $ AddHashedTerms (errors ++ errors') names ok terms types

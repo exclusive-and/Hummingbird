@@ -27,15 +27,13 @@ import Hummingbird.Name as Name
 import Hummingbird.Query (Query)
 import Hummingbird.Surface as Surface
 
-renameDeclTask ::
+renameDeclsTask ::
   Map Name Hash
-  -> Surface.Declaration Name
+  -> [Surface.Declaration Name]
   -> Task Query IO (CodePatch Renamed)
 
-renameDeclTask env (Surface.Fun name expr) =
-  undefined
-renameDeclTask env (Surface.Sig{}) =
-  pure $ AddHashedTerms [] Map.empty Set.empty Map.empty Map.empty
+renameDeclsTask env =
+  error "Hummingbird.Elaboration.Hash.renameDeclsTask: not yet implemented"
 
 renameExprTask ::
   Map Name Hash
