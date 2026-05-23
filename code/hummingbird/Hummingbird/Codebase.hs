@@ -1,7 +1,7 @@
 module Hummingbird.Codebase
 (
-  Codebase,
   Hash,
+  Codebase,
   CodePatch
     ( AddDecls
     , AddExprs
