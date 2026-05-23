@@ -11,14 +11,13 @@ import Data.Kind
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Map.Justified qualified as Justified
+import Data.Set (Set)
+import Data.Set qualified as Set
 import Prelude
 import Prettyprinter
 
-import Crypto.Hash (SHA3_512 (..))
-import Crypto.Hash qualified
-import Crypto.Hash.Generic qualified
-
-import Hummingbird.Codebase.Hash as Hash
+import Hummingbird.Codebase.Hash as Codebase
+import Hummingbird.Codebase.Patch as Codebase
 import Hummingbird.Error as Error
 import Hummingbird.Name as Name
 import Hummingbird.Surface qualified as Surface
@@ -55,6 +54,13 @@ insertTerms Codebase{..} names terms =
   liftIO do
     atomicModifyIORef_ cdbNameMap (<> names)
     atomicModifyIORef_ cdbTermMap (<> terms)
+
+applyChecked :: Codebase -> CodePatch Typechecked -> IO ()
+applyChecked cdb (AddCheckedTerms _ names ok terms _) =
+  insertTerms
+    cdb
+    (Map.filter (`Set.member` ok) names)
+    (Map.restrictKeys terms ok)
 
 -- |
 lookupModule ::

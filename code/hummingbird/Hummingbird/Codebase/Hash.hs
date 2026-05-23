@@ -1,7 +1,5 @@
 module Hummingbird.Codebase.Hash where
 
-import Control.Monad
-import Control.Monad.Fail
 import Data.Binary
 import Data.ByteArray qualified as ByteArray
 import Data.ByteString (ByteString)
