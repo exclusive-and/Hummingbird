@@ -29,6 +29,8 @@ data Query (answer :: Type) where
   -- | What definitions does this module contain?
   ModuleDefinitions :: !Name.Module -> Query [Surface.Declaration Var]
   -- |
+  LookupName :: Name -> Query (Maybe (Hash, Surface.Term Hash))
+  -- |
   RenameExpr :: Surface.Term Name -> Query (CodePatch Codebase.Renamed)
   -- |
   RenameDecls :: [Surface.Declaration Name] -> Query (CodePatch Codebase.Renamed)
@@ -61,6 +63,7 @@ instance GEq Query where
   GetModule x         `geq` GetModule y         | x == y  = Just Refl
   ModuleDefines x     `geq` ModuleDefines y     | x == y  = Just Refl
   ModuleDefinitions x `geq` ModuleDefinitions y | x == y  = Just Refl
+  LookupName x        `geq` LookupName y        | x == y  = Just Refl
   RenameExpr x        `geq` RenameExpr y        | x == y  = Just Refl
   RenameDecls x       `geq` RenameDecls y       | x == y  = Just Refl
   IngestDecl nm1 decl1 `geq` IngestDecl nm2 decl2
@@ -78,20 +81,21 @@ instance Hashable (Query a) where
   hashWithSalt = defaultHashWithSalt
 
   hash = \case
-    InitCodebase -> go 0 ()
-    GetModule a -> go 1 a
-    ModuleDefines a -> go 2 a
-    ModuleDefinitions a -> go 3 a
-    RenameExpr a -> go 4 a
-    RenameDecls a -> go 5 a
-    IngestDecl a b -> go 5 (a, b)
-    ParsedRepl a -> go 6 a
-    IngestRepl a -> go 7 a
-    FileText a -> go 8 a
-    FileRope a -> go 9 a
-    ParsedFile a -> go 10 a
-    IngestFile a -> go 11 a
-    IngestDirectory a -> go 12 a
+    InitCodebase        -> go  0 ()
+    GetModule a         -> go  1 a
+    ModuleDefines a     -> go  2 a
+    ModuleDefinitions a -> go  3 a
+    LookupName a        -> go  4 a
+    RenameExpr a        -> go  5 a
+    RenameDecls a       -> go  6 a
+    IngestDecl a b      -> go  7 (a, b)
+    ParsedRepl a        -> go  8 a
+    IngestRepl a        -> go  9 a
+    FileText a          -> go 10 a
+    FileRope a          -> go 11 a
+    ParsedFile a        -> go 12 a
+    IngestFile a        -> go 13 a
+    IngestDirectory a   -> go 14 a
     where
       go :: (Hashable b) => Int -> b -> Int
       go tag a = hash tag `hashWithSalt` a

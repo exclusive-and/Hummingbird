@@ -17,7 +17,6 @@ import Prettyprinter
 
 import Hummingbird.Codebase as Codebase
 import Hummingbird.Codebase.Db as Codebase
-import Hummingbird.Codebase.Patch as Codebase
 import Hummingbird.Elaboration.Hash
   ( renameDeclsTask
   , renameExprTask
@@ -94,12 +93,15 @@ compileRules codebase readFile_ parse_ =
     go (ModuleDefinitions modName) =
       noError $ Surface.decls <$> fetch (GetModule modName)
     
+    go (LookupName name) = noError do
+      liftIO $ Codebase.lookupName codebase name
+
     go (RenameExpr expr) = noError do
-      env <- Codebase.getNameMap codebase
+      env <- liftIO $ Codebase.getNameEnv codebase
       renameExprTask env expr
     
     go (RenameDecls decl) = noError do
-      env <- Codebase.getNameMap codebase
+      env <- liftIO $ Codebase.getNameEnv codebase
       renameDeclsTask env decl
     
     go (IngestDecl modName decl) =
@@ -138,6 +140,7 @@ applyPatch = go
       codebase <- fetch InitCodebase
       liftIO $ Codebase.applyChecked codebase patch
 
+{-
 -- |
 compileTask :: Version -> Task Query IO ()
 compileTask version = do
@@ -164,6 +167,7 @@ compileTask version = do
       result <- interpret entry (VarMap.fromList decls)
       print $ pretty result
   pure ()
+-}
 
 parse_ :: FilePath -> ParseModuleSource
 parse_ path =

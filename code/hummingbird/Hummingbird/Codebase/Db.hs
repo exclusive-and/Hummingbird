@@ -24,36 +24,47 @@ import Hummingbird.Surface qualified as Surface
 import Hummingbird.Var (Var)
 
 -- |
-data Codebase = Codebase {
-    cdbNameMap :: IORef (Map Name Hash)
-  , cdbTermMap :: IORef (Map Hash (Surface.Term Hash))
-  , cdbModules :: IORef (Map Name.Module (Surface.Module Var, Map Name Var))
-  }
+data Codebase =
+  Codebase
+    { cdbEnv      :: IORef CodebaseEnv
+    , cdbModules  :: IORef (Map Name.Module (Surface.Module Var, Map Name Var))
+    }
 
 -- |
-init :: (MonadIO m) => m Codebase
-init =
-  liftIO do
-    cdbNameMap <- newIORef Map.empty
-    cdbTermMap <- newIORef Map.empty
-    cdbModules <- newIORef Map.empty
-    pure Codebase{..}
+init :: IO Codebase
+init = do
+  cdbEnv <- newIORef emptyEnv
+  cdbModules <- newIORef Map.empty
+  pure Codebase
+    { cdbEnv
+    , cdbModules
+    }
 
-getNameMap :: (MonadIO m) => Codebase -> m (Map Name Hash)
-getNameMap Codebase{cdbNameMap} =
-  liftIO do
-    readIORef cdbNameMap
+lookupName ::
+  Codebase
+  -> Name
+  -> IO (Maybe (Hash, Surface.Term Hash))
+lookupName Codebase{cdbEnv} name = do
+  CodebaseEnv
+    { cdbNameEnv
+    , cdbTermEnv
+    } <- readIORef cdbEnv
+  pure do
+    hash <- Map.lookup name cdbNameEnv
+    term <- Map.lookup hash cdbTermEnv
+    Just (hash, term)
+
+getNameEnv :: Codebase -> IO (Map Name Hash)
+getNameEnv Codebase{cdbEnv} =
+  cdbNameEnv <$> readIORef cdbEnv
 
 insertTerms ::
-  (MonadIO m)
-  => Codebase
+  Codebase
   -> Map Name Hash
   -> Map Hash (Surface.Term Hash)
-  -> m ()
-insertTerms Codebase{..} names terms =
-  liftIO do
-    atomicModifyIORef_ cdbNameMap (<> names)
-    atomicModifyIORef_ cdbTermMap (<> terms)
+  -> IO ()
+insertTerms Codebase{cdbEnv} names terms =
+  atomicModifyIORef_ cdbEnv (insertTermsEnv names terms)
 
 applyChecked :: Codebase -> CodePatch Typechecked -> IO ()
 applyChecked cdb (AddCheckedTerms _ names ok terms _) =
@@ -83,3 +94,27 @@ addModule ::
 addModule name mod rnMap Codebase{cdbModules} =
   liftIO do
     atomicModifyIORef_ cdbModules (Map.insert name (mod, rnMap))
+
+data CodebaseEnv =
+  CodebaseEnv
+    { cdbNameEnv :: Map Name Hash
+    , cdbTermEnv :: Map Hash (Surface.Term Hash)
+    }
+
+emptyEnv :: CodebaseEnv
+emptyEnv =
+  CodebaseEnv
+    { cdbNameEnv = Map.empty
+    , cdbTermEnv = Map.empty
+    }
+
+insertTermsEnv ::
+  Map Name Hash
+  -> Map Hash (Surface.Term Hash)
+  -> CodebaseEnv
+  -> CodebaseEnv
+insertTermsEnv names terms env =
+  env
+    { cdbNameEnv = cdbNameEnv env <> names
+    , cdbTermEnv = cdbTermEnv env <> terms
+    }
