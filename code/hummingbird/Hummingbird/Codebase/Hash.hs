@@ -1,5 +1,8 @@
 module Hummingbird.Codebase.Hash where
 
+import Control.Monad
+import Crypto.Hash
+import Crypto.Hash.Generic qualified
 import Data.Array.Byte
 import Data.Binary
 import Data.ByteArray qualified as ByteArray
@@ -7,13 +10,11 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Short (ShortByteString)
 import Data.Hashable
 import Data.Text qualified as Text
-import Crypto.Hash
-import Crypto.Hash.Generic
 import Prelude
 import Prettyprinter
 import Unsafe.Coerce (unsafeCoerce)
 
-newtype Hash = Hash (Crypto.Hash.Digest SHA3_512)
+newtype Hash = Hash (Digest SHA3_512)
   deriving stock
     ( Eq
     , Ord
