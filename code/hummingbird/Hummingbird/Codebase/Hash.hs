@@ -8,6 +8,7 @@ import Data.ByteString.Short (ShortByteString)
 import Data.Hashable
 import Data.Text qualified as Text
 import Crypto.Hash
+import Crypto.Hash.Generic
 import Prelude
 import Prettyprinter
 import Unsafe.Coerce (unsafeCoerce)
@@ -19,6 +20,17 @@ newtype Hash = Hash (Crypto.Hash.Digest SHA3_512)
     , Show
     )
   deriving newtype (ByteArray.ByteArrayAccess)
+
+class CryptoHashable a where
+  cryptoHash :: a -> Hash
+  cryptoHash =
+    Hash . Crypto.Hash.Generic.hashWith SHA3_512
+  
+  default cryptoHash :: (Binary a) => a -> Hash
+
+instance CryptoHashable Hash where
+  cryptoHash a = a
+  {-# INLINE cryptoHash #-}
 
 instance Binary Hash where
   get = do
