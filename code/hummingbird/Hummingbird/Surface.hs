@@ -9,6 +9,7 @@ import Prelude
 import Prettyprinter
 
 import Hummingbird.Builtin
+import Hummingbird.Codebase.Hash (CryptoHashable)
 import Hummingbird.Literal (Literal)
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
@@ -50,6 +51,10 @@ data Type word
 instance (Binary word) => Binary (Term word)
 instance (Binary word) => Binary (Alt word)
 instance (Binary word) => Binary (Type word)
+
+instance (Binary word) => CryptoHashable (Term word)
+instance (Binary word) => CryptoHashable (Alt word)
+instance (Binary word) => CryptoHashable (Type word)
 
 instance (Hashable word) => Hashable (Term word)
 instance (Hashable word) => Hashable (Alt word)
