@@ -3,8 +3,6 @@ module Hummingbird.Codebase.Db where
 import Control.Concurrent
 import Control.Monad
 import Control.Monad.Catch
-import Data.Binary
-import Data.ByteString (ByteString)
 import Data.IORef
 import Data.IORef.Extra (atomicModifyIORef_)
 import Data.Kind
@@ -16,9 +14,10 @@ import Data.Set qualified as Set
 import Prelude
 import Prettyprinter
 
-import Hummingbird.Codebase.Hash as Codebase
-import Hummingbird.Codebase.Patch as Codebase
-import Hummingbird.Error as Error
+import Hummingbird.Codebase.Hash
+import Hummingbird.Codebase.Id
+import Hummingbird.Codebase.Patch
+import Hummingbird.Error
 import Hummingbird.Name as Name
 import Hummingbird.Surface qualified as Surface
 import Hummingbird.Var (Var)
@@ -66,7 +65,10 @@ insertTerms ::
 insertTerms Codebase{cdbEnv} names terms =
   atomicModifyIORef_ cdbEnv (insertTermsEnv names terms)
 
-applyChecked :: Codebase -> CodePatch Typechecked -> IO ()
+applyChecked ::
+  Codebase
+  -> CodePatch Typechecked
+  -> IO ()
 applyChecked cdb (AddCheckedTerms _ names ok terms _) =
   insertTerms
     cdb

@@ -11,8 +11,9 @@ import Data.Typeable
 import Prelude
 import Prettyprinter
 
-import Hummingbird.Codebase.Hash as Codebase
-import Hummingbird.Error as Error
+import Hummingbird.Codebase.Hash
+import Hummingbird.Codebase.Id
+import Hummingbird.Error
 import Hummingbird.Name as Name
 import Hummingbird.Surface qualified as Surface
 
