@@ -1,8 +1,8 @@
 module Hummingbird.Codebase
 (
   Hash,
-  CryptoHashable
-    ( cryptoHash
+  ContentAddress
+    ( contentHash
     ),
   Codebase,
   CodePatch
@@ -20,7 +20,4 @@ module Hummingbird.Codebase
 
 import Hummingbird.Codebase.Db (Codebase)
 import Hummingbird.Codebase.Hash
-  ( Hash
-  , CryptoHashable (..)
-  )
-import Hummingbird.Codebase.Patch (CodePatch (..), Stage (..))
+import Hummingbird.Codebase.Patch

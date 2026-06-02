@@ -68,6 +68,7 @@ library
   hs-source-dirs: ./hummingbird
   exposed-modules:
     Crypto.Hash.Generic
+    Data.ContentAddress
     Data.Dependent.HashMap
     Data.IORef.Extra
     Data.Map.Justified
