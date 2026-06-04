@@ -3,7 +3,7 @@ module Hummingbird.Elaboration.Monad where
 import Control.Monad
 import Prelude
 
-import Fetch (Task)
+import Hummingbird.Fetch (Task)
 
 import Hummingbird.Query (Query)
 

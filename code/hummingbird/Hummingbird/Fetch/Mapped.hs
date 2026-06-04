@@ -1,4 +1,4 @@
-module Fetch.Mapped where
+module Hummingbird.Fetch.Mapped where
 
 import Data.Hashable
 import Data.HashMap.Lazy (HashMap)
@@ -6,7 +6,7 @@ import Data.HashMap.Lazy qualified as HashMap
 import Prelude
 import Prettyprinter
 
-import Fetch (fetch, Task)
+import Hummingbird.Fetch (fetch, Task)
 
 -- |
 data Query k v a where

@@ -72,9 +72,6 @@ library
     Data.Dependent.HashMap
     Data.IORef.Extra
     Data.Map.Justified
-    Fetch
-    Fetch.Mapped
-    Fetch.Monad
     Hummingbird.Builtin
     Hummingbird.Codebase
     Hummingbird.Codebase.Db
@@ -89,6 +86,7 @@ library
     Hummingbird.Elaboration.Rename
     Hummingbird.Error
     Hummingbird.Fetch
+    Hummingbird.Fetch.Mapped
     Hummingbird.Ingest
     Hummingbird.Interpret
     Hummingbird.Literal
