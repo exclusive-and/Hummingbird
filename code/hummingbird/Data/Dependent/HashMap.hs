@@ -30,16 +30,6 @@ module Data.Dependent.HashMap
   -- elems,
 ) where
 
-import Data.Constraint.Extras
-import Data.Dependent.Sum
-import Data.Foldable qualified as Foldable
-import Data.GADT.Compare
-import Data.Hashable
-import Data.HashMap.Lazy (HashMap)
-import Data.HashMap.Lazy qualified as HashMap
-import Data.Semigroup
-import Data.Some
-import Data.Type.Equality
 import Prelude hiding
   ( empty
   , lookup
@@ -54,17 +44,29 @@ import Prelude hiding
   )
 import Prelude qualified
 
+import Data.Constraint.Extras
+import Data.Dependent.Sum
+import Data.Foldable qualified as Foldable
+import Data.GADT.Compare
+import Data.Hashable
+import Data.HashMap.Lazy (HashMap)
+import Data.HashMap.Lazy qualified as HashMap
+import Data.Semigroup
+import Data.Some
+import Data.Type.Equality
+
 newtype DHashMap k v =
   DHashMap (HashMap (Some k) (DSum k v))
 
 deriving newtype instance (GEq k, Has' Eq k v) => Eq (DHashMap k v)
-deriving newtype instance (GCompare k, Has' Eq k v, Has' Ord k v) => Ord (DHashMap k v)
+deriving newtype instance
+  (GCompare k, Has' Eq k v, Has' Ord k v) => Ord (DHashMap k v)
+
 deriving newtype instance (GEq k, Hashable (Some k)) => Monoid (DHashMap k v)
 deriving newtype instance (GEq k, Hashable (Some k)) => Semigroup (DHashMap k v)
 
 empty :: DHashMap k v
-empty =
-  DHashMap HashMap.empty
+empty = DHashMap HashMap.empty
 
 singleton :: (Hashable (Some k)) => k a -> v a -> DHashMap k v
 singleton k v =
@@ -159,7 +161,8 @@ alter f k (DHashMap h) =
         Nothing   -> (:=>) k <$> f Nothing
 
 alterF ::
-  (Functor f, GEq k, Hashable (Some k))
+  (GEq k, Hashable (Some k))
+  => (Functor f)
   => (Maybe (v a) -> f (Maybe (v a)))
   -> k a
   -> DHashMap k v
@@ -205,7 +208,8 @@ unionWith f (DHashMap h1) (DHashMap h2) =
           error "Data.Dependent.HashMap.unionWith: key mismatch"
 
 unions ::
-  (GEq k, Hashable (Some k), Foldable f)
+  (GEq k, Hashable (Some k))
+  => (Foldable f)
   => f (DHashMap k v)
   -> DHashMap k v
 unions = Foldable.foldl' union empty

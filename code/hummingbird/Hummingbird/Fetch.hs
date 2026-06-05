@@ -3,7 +3,8 @@
 
 module Hummingbird.Fetch where
 
-import Control.Concurrent
+import Prelude
+
 import Control.Monad
 import Control.Monad.Accum
 import Control.Monad.Catch
@@ -12,6 +13,7 @@ import Control.Monad.Cont
 import Control.Monad.Except
 import Control.Monad.Fix
 import Control.Monad.Identity
+import Control.Monad.Primitive
 import Control.Monad.Reader
 import Control.Monad.RWS
 import Control.Monad.RWS.Strict qualified
@@ -21,33 +23,23 @@ import Control.Monad.Trans
 import Control.Monad.Trans.Maybe
 import Control.Monad.Writer (WriterT)
 import Control.Monad.Writer.Strict qualified
-import Data.Bifunctor
-import Data.Constraint.Extras
 import Data.Dependent.HashMap (DHashMap)
 import Data.Dependent.HashMap qualified as DHashMap
-import Data.Dependent.Sum
-import Data.Foldable
-import Data.Functor.Const
 import Data.GADT.Compare
 import Data.Hashable
-import Data.IORef
-import Data.IORef.Extra (atomicModifyIORef_)
-import Data.Kind
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
+import Data.Primitive.MutVar
+import Data.Primitive.MVar as MVar
 import Data.Some
-import Data.Typeable
-import Prelude
-import Prettyprinter
-import Prettyprinter.Render.Text
 
 -- | Inference rules for questions in @q@.
 type Rules m q = GenRules m q q
 
 -- | Inference rules for @p@-questions that can depend on @q@-questions.
 newtype GenRules m p q =
-  GenRules (forall (a :: Type). p a -> Task q m a)
+  GenRules (forall a. p a -> Task q m a)
 
 -- | Computes an answer @a@. May ask itself @q@-questions to compute the answer.
 newtype Task q m a = Task {
@@ -63,6 +55,7 @@ newtype Task q m a = Task {
     , MonadIO
     , MonadMask
     , MonadThrow
+    , PrimMonad
     )
 
 instance MonadTrans (Task q) where
@@ -152,29 +145,28 @@ writer write (GenRules rules) =
     pure result
 
 memoise ::
-  forall f g m.
-  (GEq f, Hashable (Some f))
-  => (MonadIO m)
-  => IORef (DHashMap f MVar)
-  -> GenRules m f g
-  -> GenRules m f g
+  (GEq p, Hashable (Some p))
+  => (MonadPrim s m)
+  => MutVar s (DHashMap p (MVar s))
+  -> GenRules m p q
+  -> GenRules m p q
 
 memoise memoCtxVar (GenRules rules) =
-  GenRules \(key :: f a) ->
+  GenRules \key ->
     do
-    memoCtx <- liftIO $ readIORef memoCtxVar
-    case DHashMap.lookup key memoCtx of
-      Just memoVar -> liftIO do
-        readMVar memoVar
-      Nothing -> join $ liftIO do
-        memoVar <- newEmptyMVar
-        atomicModifyIORef memoCtxVar \memoCtx ->
-          case DHashMap.alterLookup (Just . fromMaybe memoVar) key memoCtx of
-            (Just memoVar', _) -> (memoCtx, liftIO $ readMVar memoVar')
-            (Nothing, memoCtx') ->
-              ( memoCtx'
-              , do
-                value <- rules key
-                liftIO $ putMVar memoVar value
-                pure value
-              )
+    memoCtx <- readMutVar memoCtxVar
+    case key `DHashMap.lookup` memoCtx of
+      Just memoVar -> readMVar memoVar
+      Nothing -> join do
+        freshMemoVar <- newEmptyMVar
+        let
+          launch = do
+            value <- rules key
+            putMVar freshMemoVar value
+            pure value
+        let
+          recall Nothing =
+            (launch, Just freshMemoVar)
+          recall (Just memoVar) =
+            (readMVar memoVar, Just memoVar)
+        atomicModifyMutVar memoCtxVar $ swap . DHashMap.alterF recall key
