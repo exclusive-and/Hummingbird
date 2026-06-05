@@ -1,46 +1,62 @@
+{-# Language PolyKinds #-}
 {-# Language UndecidableInstances #-}
 
 module Data.Dependent.HashMap
 (
   DHashMap,
+  -- * Construction
   empty,
   singleton,
-  null,
-  size,
+  -- ** From lists
+  Data.Dependent.HashMap.fromList,
+  -- * Query
   member,
   lookup,
   lookupDefault,
+  -- ** Size
+  null,
+  size,
+  -- * Insertion
   insert,
   insertWith,
-  -- delete,
-  -- adjust,
-  -- update,
+  -- * Deletion (and other destructive operations)
+  delete,
+  adjust,
+  update,
   alter,
   alterF,
   alterLookup,
+  -- * Combinators
+  -- ** Union
   union,
   unionWith,
   unions,
-  -- unionsWith,
+  unionsWith,
+  -- * Traversal
   map,
   mapWithKey,
   traverse,
   traverseWithKey,
-  -- keys,
-  -- elems,
+  -- * Conversion
+  keys,
+  elems,
+  -- ** To lists
+  Data.Dependent.HashMap.toList,
 ) where
 
 import Prelude hiding
   ( empty
-  , lookup
-  , null
-  , map
-  , traverse
-  , foldMap
+  , filter
   , foldl
   , foldl'
+  , foldMap
   , foldr
-  , filter
+  , fromList
+  , lookup
+  , map
+  , null
+  , toList
+  , traverse
   )
 import Prelude qualified
 
@@ -51,6 +67,7 @@ import Data.GADT.Compare
 import Data.Hashable
 import Data.HashMap.Lazy (HashMap)
 import Data.HashMap.Lazy qualified as HashMap
+import Data.Kind
 import Data.Semigroup
 import Data.Some
 import Data.Type.Equality
@@ -68,15 +85,20 @@ deriving newtype instance (GEq k, Hashable (Some k)) => Semigroup (DHashMap k v)
 empty :: DHashMap k v
 empty = DHashMap HashMap.empty
 
-singleton :: (Hashable (Some k)) => k a -> v a -> DHashMap k v
+singleton ::
+  (Hashable (Some k))
+  => k a
+  -> v a
+  -> DHashMap k v
 singleton k v =
   DHashMap (HashMap.singleton (Some k) (k :=> v))
 
-null :: DHashMap k v -> Bool
-null (DHashMap h) = HashMap.null h
-
-size :: DHashMap k v -> Int
-size (DHashMap h) = HashMap.size h
+fromList ::
+  (GEq k, Hashable (Some k))
+  => [DSum k v]
+  -> DHashMap k v
+fromList xs =
+  DHashMap (HashMap.fromList [ (Some k, kv) | kv@(k :=> _) <- xs ])
 
 member ::
   (GEq k, Hashable (Some k))
@@ -85,25 +107,20 @@ member ::
   -> Bool
 member k (DHashMap h) = HashMap.member (Some k) h
 
-dsumOrDefault ::
-  (GEq k)
-  => r
-  -> (v a -> r)
-  -> k a
-  -> DSum k v
-  -> r
-dsumOrDefault default_ f k (k' :=> v) =
-  case geq k k' of
-    Nothing   -> default_
-    Just Refl -> f v
-
 lookup ::
   (GEq k, Hashable (Some k))
   => k a
   -> DHashMap k v
   -> Maybe (v a)
 lookup k (DHashMap h) =
-  dsumOrDefault Nothing Just k =<< HashMap.lookup (Some k) h
+  let
+    go (k' :=> v) =
+      case geq k k' of
+        Just Refl -> Just v
+        _ ->
+          error "Data.Dependent.HashMap.lookup: key mistmatch"
+  in
+    Some k `HashMap.lookup` h >>= go
 
 lookupDefault ::
   (GEq k, Hashable (Some k))
@@ -112,11 +129,20 @@ lookupDefault ::
   -> DHashMap k v
   -> v a
 lookupDefault default_ k (DHashMap h) =
-  dsumOrDefault
-    (error "Data.Dependent.HashMap.lookupDefault: key mismatch")
-    id
-    k
-    (HashMap.lookupDefault (k :=> default_) (Some k) h)
+  let
+    go (k' :=> v) =
+      case geq k k' of
+        Just Refl -> v
+        _ ->
+          error "Data.Dependent.HashMap.lookupDefault: key mismatch"
+  in
+    go $ HashMap.lookupDefault (k :=> default_) (Some k) h
+
+null :: DHashMap k v -> Bool
+null (DHashMap h) = HashMap.null h
+
+size :: DHashMap k v -> Int
+size (DHashMap h) = HashMap.size h
 
 insert ::
   (GEq k, Hashable (Some k))
@@ -135,14 +161,57 @@ insertWith ::
   -> DHashMap k v
   -> DHashMap k v
 insertWith f k v (DHashMap h) =
-  DHashMap (HashMap.insertWith go (Some k) (k :=> v) h)
-  where
+  let
     go (k1 :=> v1) (k2 :=> v2) =
       case (geq k k1, geq k k2) of
         (Just Refl, Just Refl) ->
           k :=> f v1 v2
         _ ->
           error "Data.Dependent.HashMap.insertWith: key mismatch"
+  in
+    DHashMap (HashMap.insertWith go (Some k) (k :=> v) h)
+
+delete ::
+  (GEq k, Hashable (Some k))
+  => k a
+  -> DHashMap k v
+  -> DHashMap k v
+delete k (DHashMap h) =
+  DHashMap (HashMap.delete (Some k) h)
+
+adjust ::
+  (GEq k, Hashable (Some k))
+  => (v a -> v a)
+  -> k a
+  -> DHashMap k v
+  -> DHashMap k v
+adjust f k (DHashMap h) =
+  let
+    go (k' :=> v) =
+      case geq k k' of
+        Just Refl ->
+          k :=> f v
+        _ ->
+          error "Data.Dependent.HashMap.adjust: key mismatch"
+  in
+    DHashMap (HashMap.adjust go (Some k) h)
+
+update ::
+  (GEq k, Hashable (Some k))
+  => (v a -> Maybe (v a))
+  -> k a
+  -> DHashMap k v
+  -> DHashMap k v
+update f k (DHashMap h) =
+  let
+    go (k' :=> v) =
+      case geq k k' of
+        Just Refl ->
+          (k :=>) <$> f v
+        _ ->
+          error "Data.Dependent.HashMap.update: key mismatch"
+  in
+    DHashMap (HashMap.update go (Some k) h)
 
 alter ::
   (GEq k, Hashable (Some k))
@@ -214,6 +283,14 @@ unions ::
   -> DHashMap k v
 unions = Foldable.foldl' union empty
 
+unionsWith ::
+  (GEq k, Hashable (Some k))
+  => (Foldable f)
+  => (forall a. v a -> v a -> v a)
+  -> f (DHashMap k v)
+  -> DHashMap k v
+unionsWith f = Foldable.foldl' (unionWith f) empty
+
 map :: (forall a. v a -> v' a) -> DHashMap k v -> DHashMap k v'
 map f (DHashMap h) =
   DHashMap (HashMap.map (\(k :=> v) -> k :=> f v) h)
@@ -237,3 +314,13 @@ traverseWithKey ::
   -> f (DHashMap k v')
 traverseWithKey f (DHashMap h) =
   DHashMap <$> Prelude.traverse (\(k :=> v) -> (:=>) k <$> f k v) h
+
+keys :: DHashMap k v -> [Some k]
+keys (DHashMap h) = HashMap.keys h
+
+elems :: DHashMap k v -> [Some v]
+elems (DHashMap h) =
+  [ Some v | _ :=> v <- HashMap.elems h ]
+
+toList :: DHashMap k v -> [DSum k v]
+toList (DHashMap h) = HashMap.elems h
