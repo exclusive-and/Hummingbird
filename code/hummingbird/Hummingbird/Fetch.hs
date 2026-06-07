@@ -34,53 +34,6 @@ import Data.Primitive.MutVar
 import Data.Primitive.MVar as MVar
 import Data.Some
 
--- | Inference rules for questions in @q@.
-type Rules m q = GenRules m q q
-
--- | Inference rules for @p@-questions that can depend on @q@-questions.
-newtype GenRules m p q =
-  GenRules (forall a. p a -> Task q m a)
-
--- | Computes an answer @a@. May ask itself @q@-questions to compute the answer.
-newtype Task q m a = Task {
-    unTask :: ReaderT (Fetch q m) m a
-  }
-  deriving newtype
-    ( Applicative
-    , Functor
-    , Monad
-    , MonadCatch
-    , MonadFail
-    , MonadFix
-    , MonadIO
-    , MonadMask
-    , MonadThrow
-    , PrimMonad
-    )
-
-instance MonadTrans (Task q) where
-  lift = Task . lift
-
-instance (MonadReader r m) => MonadReader r (Task q m) where
-  ask = lift ask
-
-  local f =
-    Task . mapReaderT (local f) . unTask
-
-deriving newtype instance (MonadAccum w m) => MonadAccum w (Task q m)
-deriving newtype instance (MonadChronicle c m) => MonadChronicle c (Task q m)
-deriving newtype instance (MonadCont m) => MonadCont (Task q m)
-deriving newtype instance (MonadError e m) => MonadError e (Task q m)
-deriving newtype instance (MonadRWS r w s m) => MonadRWS r w s (Task q m)
-deriving newtype instance (MonadState s m) => MonadState s (Task q m)
-deriving newtype instance (MonadWriter w m) => MonadWriter w (Task q m)
-
-newtype Fetch q m = Fetch (forall a. q a -> m a)
-
-runTask :: Rules m q -> Task q m a -> m a
-runTask (GenRules rules) (Task task) =
-  runReaderT task $ Fetch $ runTask (GenRules rules) . rules
-
 -- | Monads that can 'fetch' answers to queries from a query type @q@.
 class (Monad m) => MonadFetch q m | m -> q where
   fetch :: q a -> m a
@@ -90,10 +43,6 @@ class (Monad m) => MonadFetch q m | m -> q where
     (MonadTrans t, MonadFetch q n, m ~ t n)
     => q a
     -> m a
-
-instance (Monad m) => MonadFetch q (Task q m) where
-  fetch key =
-    Task $ asks (\(Fetch fetch_) -> fetch_ key) >>= lift
 
 instance (MonadFetch q m, Semigroup c) => MonadFetch q (ChronicleT c m)
 instance (MonadFetch q m) => MonadFetch q (ContT r m)
@@ -116,6 +65,44 @@ instance
 instance
   (MonadFetch q m, Monoid w)
   => MonadFetch q (Control.Monad.Writer.Strict.WriterT w m)
+
+newtype Fetch q m = Fetch (forall a. q a -> m a)
+
+-- | Computes an answer @a@. May ask itself @q@-questions to compute the answer.
+newtype Task q m a = Task {
+    unTask :: ReaderT (Fetch q m) m a
+  }
+  deriving newtype
+    ( Applicative
+    , Functor
+    , Monad
+    , MonadCatch
+    , MonadCont
+    , MonadFail
+    , MonadFix
+    , MonadIO
+    , MonadMask
+    , MonadThrow
+    , PrimMonad
+    )
+
+instance (Monad m) => MonadFetch q (Task q m) where
+  fetch key = Task $
+    asks (\(Fetch fetch_) -> fetch_ key) >>= lift
+
+instance MonadTrans (Task q) where
+  lift = Task . lift
+
+instance (MonadReader r m) => MonadReader r (Task q m) where
+  ask = lift ask
+  local f (Task t) = Task $ mapReaderT (local f) t
+
+deriving newtype instance (MonadAccum w m) => MonadAccum w (Task q m)
+deriving newtype instance (MonadChronicle c m) => MonadChronicle c (Task q m)
+deriving newtype instance (MonadError e m) => MonadError e (Task q m)
+deriving newtype instance (MonadRWS r w s m) => MonadRWS r w s (Task q m)
+deriving newtype instance (MonadState s m) => MonadState s (Task q m)
+deriving newtype instance (MonadWriter w m) => MonadWriter w (Task q m)
 
 -- | Hoist @p@-question 'Task's into @q@-question 'Task's via a natural transformation on
 -- questions.
@@ -143,6 +130,16 @@ writer write (GenRules rules) =
     (result, w) <- rules $ Writer key
     write key w
     pure result
+
+-- | Inference rules for questions in @q@.
+type Rules m q = GenRules m q q
+
+-- | Inference rules for @p@-questions that can depend on @q@-questions.
+newtype GenRules m p q = GenRules (forall a. p a -> Task q m a)
+
+runTask :: Rules m q -> Task q m a -> m a
+runTask (GenRules rules) (Task task) =
+  runReaderT task $ Fetch $ runTask (GenRules rules) . rules
 
 memoise ::
   (GEq p, Hashable (Some p))
