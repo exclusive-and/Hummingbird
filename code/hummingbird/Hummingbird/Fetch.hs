@@ -5,6 +5,7 @@ module Hummingbird.Fetch where
 
 import Prelude
 
+import Control.Concurrent qualified
 import Control.Monad
 import Control.Monad.Accum
 import Control.Monad.Catch
@@ -26,13 +27,16 @@ import Control.Monad.Writer.Strict qualified
 import Data.Dependent.HashMap (DHashMap)
 import Data.Dependent.HashMap qualified as DHashMap
 import Data.GADT.Compare
+import Data.GADT.Show (GShow)
 import Data.Hashable
+import Data.Kind
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
 import Data.Primitive.MutVar
 import Data.Primitive.MVar as MVar
 import Data.Some
+import Data.Typeable
 
 -- | Monads that can 'fetch' answers to queries from a query type @q@.
 class (Monad m) => MonadFetch q m | m -> q where
@@ -167,3 +171,59 @@ memoise memoCtxVar (GenRules rules) =
           recall (Just memoVar) =
             (readMVar memoVar, Just memoVar)
         atomicModifyMutVar memoCtxVar $ swap . DHashMap.alterF recall key
+
+newtype Cyclic (f :: Type -> Type) = Cyclic (Some f)
+  deriving (Show)
+
+instance (GShow f, Typeable f) => Exception (Cyclic f)
+
+data MemoEntry a
+  = Done a
+  | Started !Control.Concurrent.ThreadId
+            !(MVar RealWorld (Maybe a))
+            !(MVar RealWorld (Maybe [Control.Concurrent.ThreadId]))
+
+memoiseWithCycleDetection ::
+  forall p m q.
+  ( Typeable p
+  , GEq p
+  , GShow p
+  , Hashable (Some p)
+  )
+  => (MonadCatch m)
+  => (MonadPrim RealWorld m)
+  => MutVar RealWorld (DHashMap p MemoEntry)
+  -> GenRules m p q
+  -> GenRules m p q
+
+memoiseWithCycleDetection memoCtxVar (GenRules rules) =
+  GenRules $ fix \mwcd (key :: p a) ->
+    do
+    threadId <- ioToPrim Control.Concurrent.myThreadId
+    let
+      runToCompletion :: MemoEntry a -> Task q m a
+      runToCompletion (Done a) = pure a
+      runToCompletion (Started hostThreadId memoVar stbyVar) = do
+        when (threadId == hostThreadId) do
+          throwM $ Cyclic $ Some key
+        maybe (mwcd key) pure =<< readMVar memoVar
+    memoCtx <- readMutVar memoCtxVar
+    case key `DHashMap.lookup` memoCtx of
+      Just entry -> do
+        runToCompletion entry
+      Nothing -> join do
+        freshMemoVar <- newEmptyMVar
+        freshStbyVar <- newEmptyMVar
+        let
+          launch = do
+            value <- rules key
+            putMVar freshMemoVar (Just value)
+            atomicModifyMutVar memoCtxVar $
+              (, value) . DHashMap.insert key (Done value)
+        let
+          recall (Just entry) =
+            (runToCompletion entry, Just entry)
+          recall Nothing =
+            (launch, Just $ Started threadId freshMemoVar freshStbyVar)
+        atomicModifyMutVar memoCtxVar $ swap . DHashMap.alterF recall key
+
