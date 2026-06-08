@@ -145,9 +145,17 @@ runTask :: Rules m q -> Task q m a -> m a
 runTask (GenRules rules) (Task task) =
   runReaderT task $ Fetch $ runTask (GenRules rules) . rules
 
+type Memoiseable p =
+  ( Typeable p
+  , GEq p
+  , GShow p
+  , Hashable (Some p)
+  )
+
+type MonadMemoise p s m = (Memoiseable p, MonadCatch m, MonadPrim s m)
+
 memoise ::
-  (GEq p, Hashable (Some p))
-  => (MonadPrim s m)
+  (MonadMemoise p s m)
   => MutVar s (DHashMap p (MVar s))
   -> GenRules m p q
   -> GenRules m p q
@@ -185,13 +193,7 @@ data MemoEntry a
 
 memoiseWithCycleDetection ::
   forall p m q.
-  ( Typeable p
-  , GEq p
-  , GShow p
-  , Hashable (Some p)
-  )
-  => (MonadCatch m)
-  => (MonadPrim RealWorld m)
+  (MonadMemoise p RealWorld m)
   => MutVar RealWorld (DHashMap p MemoEntry)
   -> GenRules m p q
   -> GenRules m p q
