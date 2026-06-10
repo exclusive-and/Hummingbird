@@ -29,12 +29,16 @@ import Data.Dependent.HashMap qualified as DHashMap
 import Data.GADT.Compare
 import Data.GADT.Show (GShow)
 import Data.Hashable
+import Data.HashMap.Lazy (HashMap)
+import Data.HashMap.Lazy qualified as HashMap
 import Data.Kind
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
 import Data.Primitive.MutVar
+import Data.Primitive.MutVar.Extra (atomicModifyMutVar_)
 import Data.Primitive.MVar as MVar
+import Data.Primitive.MVar.Extra as MVar
 import Data.Some
 import Data.Typeable
 
@@ -152,7 +156,7 @@ type Memoiseable p =
   , Hashable (Some p)
   )
 
-type MonadMemoise p s m = (Memoiseable p, MonadCatch m, MonadPrim s m)
+type MonadMemoise p s m = (Memoiseable p, MonadMask m, MonadPrim s m)
 
 memoise ::
   (MonadMemoise p s m)
@@ -181,7 +185,12 @@ memoise memoCtxVar (GenRules rules) =
         atomicModifyMutVar memoCtxVar $ swap . DHashMap.alterF recall key
 
 newtype Cyclic (f :: Type -> Type) = Cyclic (Some f)
-  deriving (Show)
+  deriving
+    ( Eq
+    , Generic
+    , Show
+    , Typeable
+    )
 
 instance (GShow f, Typeable f) => Exception (Cyclic f)
 
@@ -191,34 +200,106 @@ data MemoEntry a
             !(MVar RealWorld (Maybe a))
             !(MVar RealWorld (Maybe [Control.Concurrent.ThreadId]))
 
+-- | 'detectMemoCycle' tests whether a thread is blocked by itself, including
+-- transitive dependencies. The second argument represents the blocked
+-- status of each live thread as follows:
+--
+--  * @'Nothing'@: the thread isn't blocked. It can't be in a cycle.
+--
+--  * @'Just' depId@: the thread is blocked by another thread with ID @depId@.
+detectMemoCycle ::
+  Control.Concurrent.ThreadId
+  -> HashMap
+      Control.Concurrent.ThreadId
+      Control.Concurrent.ThreadId
+  -> Bool
+
+detectMemoCycle threadId deps =
+  let
+    go tid =
+      case tid `HashMap.lookup` deps of
+        Nothing -> False
+        Just depId
+          | depId == threadId -> True
+          | otherwise         -> go depId
+  in
+    go threadId
+
+-- | Variant of 'Control.Concurrent.myThreadId'.
+getThreadId :: (MonadPrim RealWorld m) => Task q m Control.Concurrent.ThreadId
+getThreadId = 
+  ioToPrim Control.Concurrent.myThreadId
+
 memoiseWithCycleDetection ::
   forall p m q.
   (MonadMemoise p RealWorld m)
   => MutVar RealWorld (DHashMap p MemoEntry)
+  -> MutVar RealWorld
+      ( HashMap
+          Control.Concurrent.ThreadId
+          Control.Concurrent.ThreadId
+      )
   -> GenRules m p q
   -> GenRules m p q
 
-memoiseWithCycleDetection memoCtxVar (GenRules rules) =
-  GenRules $ fix \mwcd (key :: p a) ->
-    do
-    threadId <- ioToPrim Control.Concurrent.myThreadId
+memoiseWithCycleDetection memoCtxVar depsVar (GenRules rules) =
+  GenRules $ fix \mwcd (key :: p a) -> do
     let
       runToCompletion :: MemoEntry a -> Task q m a
       runToCompletion (Done a) = pure a
       runToCompletion (Started hostThreadId memoVar stbyVar) = do
-        when (threadId == hostThreadId) do
-          throwM $ Cyclic $ Some key
-        maybe (mwcd key) pure =<< readMVar memoVar
+        threadId <- getThreadId
+        let
+          checkNoCycles deps =
+            if detectMemoCycle threadId deps' then
+              -- The host thread says it depends on me! We're stuck!
+              ( deps
+              , throwM (Cyclic $ Some key)
+              )
+            else
+              (deps', pure ())
+            where
+              deps' = HashMap.insert threadId hostThreadId deps
+        modifyMVar_ stbyVar \case
+          Nothing ->
+            pure Nothing
+          Just stbyThreads -> do
+            join $
+              atomicModifyMutVar
+                depsVar
+                checkNoCycles
+            pure $ Just (threadId : stbyThreads)
+        readMVar memoVar >>= maybe (mwcd key) pure
+
     memoCtx <- readMutVar memoCtxVar
     case key `DHashMap.lookup` memoCtx of
-      Just entry -> do
+      -- I already have a MemoEntry: let it run to completion.
+      Just entry ->
         runToCompletion entry
+
+      -- I haven't seen `key` before:
+      --  1. create a new MemoEntry for the query;
+      --  2. call `rules` on the query to process it in this thread.
       Nothing -> join do
+        threadId <- getThreadId
         freshMemoVar <- newEmptyMVar
-        freshStbyVar <- newEmptyMVar
+        freshStbyVar <- newMVar (Just [])
+        let
+          cleanup Nothing =
+            error "Hummingbird.Fetch.memoiseWithCycleDetection: something impossible happened"
+          cleanup (Just stbyThreads) =
+            pure
+              ( Nothing
+              , atomicModifyMutVar_ depsVar \deps ->
+                  foldl' (flip HashMap.delete) deps stbyThreads
+              )
         let
           launch = do
             value <- rules key
+            -- The query is finished: I can remove my thread from the record
+            -- of dependencies now.
+            join $ modifyMVar freshStbyVar cleanup
+            -- putMVar wakes any client threads that were blocked on this query.
             putMVar freshMemoVar (Just value)
             atomicModifyMutVar memoCtxVar $
               (, value) . DHashMap.insert key (Done value)

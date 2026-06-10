@@ -72,6 +72,8 @@ library
     Data.Dependent.HashMap
     Data.IORef.Extra
     Data.Map.Justified
+    Data.Primitive.MutVar.Extra
+    Data.Primitive.MVar.Extra
     Hummingbird.Builtin
     Hummingbird.Codebase
     Hummingbird.Codebase.Db
