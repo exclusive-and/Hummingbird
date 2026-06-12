@@ -75,7 +75,10 @@ library
     Data.Primitive.MVar.Extra
     Hummingbird.Builtin
     Hummingbird.Codebase
+    Hummingbird.Codebase.Db
     Hummingbird.Codebase.Hash
+    Hummingbird.Codebase.Id
+    Hummingbird.Codebase.Patch
     Hummingbird.Elaboration
     Hummingbird.Elaboration.Context
     Hummingbird.Elaboration.Meta
