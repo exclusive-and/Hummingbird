@@ -1,11 +1,14 @@
 module Hummingbird.Main where
 
-import Control.Exception
+import Control.Concurrent
+import Control.Monad
+import Control.Monad.Catch
 import Data.IORef
 import Data.IORef.Extra (atomicModifyIORef_)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
+import Data.Primitive.MutVar
 import Data.Text qualified as Text
 import Data.Text.IO qualified as Text
 import Prelude
@@ -30,6 +33,8 @@ import Hummingbird.Version (Version)
 -- | Run a 'Task' using the inference rules defined in 'compileRules'.
 run :: Task Query IO a -> IO (a, [Error])
 run task = do
+  memoVar <- newMutVar mempty
+  depsVar <- newMutVar mempty
   errorsRef <- newIORef []
   codebase <- Codebase.init
   let
@@ -37,10 +42,12 @@ run task = do
     recordErrors _key errs =
       liftIO $ atomicModifyIORef_ errorsRef (++ errs)
   let
-    rules :: Rules Query
-    rules = writer ignoreTaskKind
-          $ writer recordErrors
-          $ compileRules codebase (fmap Right . Text.readFile) parse_
+    rules :: Rules IO Query
+    rules =
+      compileRules codebase (fmap Right . Text.readFile) parse_
+        & writer recordErrors
+        & writer ignoreTaskKind
+        & memoiseWithCycleDetection memoVar depsVar
   Fetch.runTask rules $ do
     result <- task
     errors <- liftIO (readIORef errorsRef)
@@ -52,39 +59,44 @@ compileRules ::
   -> ReadFile
   -> (FilePath -> ParseModuleSource)
   -> GenRules
+      IO
       (Writer [Error] (Writer TaskKind Query))
       Query
 
-compileRules codebase readFile_ parse_ (Writer (Writer query)) = case query of
-  InitCodebase ->
-    noError $ pure codebase
-  GetModule modName ->
-    noError $ liftIO $
-    Codebase.lookupModule modName codebase >>= \case
-      Nothing -> do
-        pure $ Surface.Module modName []
-      Just found -> pure $ fst found
-  ModuleDefines modName ->
-    noError $ liftIO $
-    Codebase.lookupModule modName codebase >>= \case
-      Nothing -> pure Map.empty
-      Just found -> pure $ snd found
-  ModuleDefinitions modName ->
-    noError $ do
-      modDefn <- fetch $ GetModule modName
-      pure $ Surface.decls modDefn
-  IngestDecl modName decl ->
-    noError $ ingestDecl modName decl codebase
-  FileText path ->
-    input $ getFileText readFile_ path
-  FileRope path ->
-    input $ getFileRope readFile_ path
-  ParsedFile path ->
-    noError $ parseModuleFile parse_ path
-  IngestFile path ->
-    noError $ ingestFile path codebase
-  IngestDirectory rootPath ->
-    noError $ ingestDirectory rootPath codebase
+compileRules codebase readFile_ parse_ =
+  let
+    go :: Query a -> Task Query IO (Result a)
+    go InitCodebase =
+      noError $ pure codebase
+
+    go (GetModule modName) = noError do
+      liftIO $ Codebase.lookupModule modName codebase >>= \case
+        Nothing -> do
+          pure $ Surface.Module modName []
+        Just found -> pure $ fst found
+
+    go (ModuleDefines modName) = noError do
+      liftIO $ Codebase.lookupModule modName codebase >>= \case
+        Nothing -> pure Map.empty
+        Just found -> pure $ snd found
+
+    go (ModuleDefinitions modName) =
+      noError $ Surface.decls <$> fetch (GetModule modName)
+    
+    go (IngestDecl modName decl) =
+      noError $ ingestDecl modName decl codebase
+    go (FileText path) =
+      input $ getFileText readFile_ path
+    go (FileRope path) =
+      input $ getFileRope readFile_ path
+    go (ParsedFile path) =
+      noError $ parseModuleFile parse_ path
+    go (IngestFile path) =
+      noError $ ingestFile path codebase
+    go (IngestDirectory rootPath) =
+      noError $ ingestDirectory rootPath codebase
+  in
+    GenRules \(Writer (Writer query)) -> go query
 
 -- |
 compileTask :: Version -> Task Query IO ()
@@ -100,7 +112,7 @@ compileTask version = do
   ingested <- fetch $ IngestFile srcFilePath
   case ingested of
     Nothing -> pure ()
-    Just errs -> liftIO $ throwIO errs
+    Just errs -> liftIO $ throwM errs
   modGuts <- fetch $ GetModule modName
   liftIO $ print $ pretty modGuts
   rnMap <- fetch $ ModuleDefines modName
