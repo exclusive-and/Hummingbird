@@ -12,22 +12,13 @@ import Prelude
 import Prettyprinter
 import System.FilePath
 
-import Fetch (
-  fetch,
-  Task,
-  GenRules,
-  Except (..),
-  Writer (..),
-  )
-import Fetch qualified
-import Fetch.Mapped qualified as Mapped
-
 import Hummingbird.Builtin (builtins)
 import Hummingbird.Codebase (Codebase)
 import Hummingbird.Codebase qualified as Codebase
 import Hummingbird.Elaboration.Rename (RnMap, runRename, renameBinds)
 import Hummingbird.Error (Error)
 import Hummingbird.Error qualified as Error
+import Hummingbird.Fetch as Fetch
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
 import Hummingbird.Query (Query (..))

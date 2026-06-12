@@ -35,6 +35,7 @@ common common-language
     RoleAnnotations
     ScopedTypeVariables
     StandaloneDeriving
+    StandaloneKindSignatures
     TupleSections
     TypeAbstractions
     TypeApplications
@@ -66,11 +67,11 @@ library
   hs-source-dirs: ./hummingbird
   exposed-modules:
     Crypto.Hash.Generic
+    Data.Dependent.HashMap
     Data.IORef.Extra
     Data.Map.Justified
-    Fetch
-    Fetch.Mapped
-    Fetch.Monad
+    Data.Primitive.MutVar.Extra
+    Data.Primitive.MVar.Extra
     Hummingbird.Builtin
     Hummingbird.Codebase
     Hummingbird.Elaboration
@@ -80,6 +81,7 @@ library
     Hummingbird.Elaboration.Monad
     Hummingbird.Elaboration.Rename
     Hummingbird.Error
+    Hummingbird.Fetch
     Hummingbird.Ingest
     Hummingbird.Interpret
     Hummingbird.Literal
@@ -107,6 +109,7 @@ library
     , base ^>= 4.21
     , binary
     , bytestring
+    , constraints-extras
     , containers
     , crypton
     , dependent-sum
@@ -120,6 +123,8 @@ library
     , parsec
     , prettyprinter
     , prettyprinter-ansi-terminal
+    , primitive
+    , ram
     , shellmet
     , some
     , template-haskell

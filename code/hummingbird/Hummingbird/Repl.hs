@@ -11,18 +11,9 @@ import Data.Text.IO qualified as Text
 import Prelude
 import Prettyprinter
 
-import Fetch
-  ( fetch
-  , GenRules
-  , Rules
-  , Task
-  , writer
-  , Writer (..)
-  )
-import Fetch qualified
-
 import Hummingbird.Codebase as Codebase
 import Hummingbird.Error as Error
+import Hummingbird.Fetch as Fetch
 import Hummingbird.Ingest
 import Hummingbird.Interpret (interpret)
 import Hummingbird.Name as Name

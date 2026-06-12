@@ -20,8 +20,11 @@ let
       binary
       brick
       bytestring
+      constraints-extras
       containers
-      crypton
+      crypton_1_1_1
+      dependent-sum
+      dependent-sum-template
       filepath
       exceptions_0_10_12
       hashable
@@ -31,7 +34,10 @@ let
       parsec
       prettyprinter
       prettyprinter-ansi-terminal
+      primitive
+      ram
       shellmet
+      some
       template-haskell
       text
       text-rope
