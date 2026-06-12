@@ -1,6 +1,7 @@
 module Hummingbird.Surface where
 
 import Data.Binary
+import Data.ContentAddress
 import Data.Hashable
 import Data.String
 import Data.Text (Text)
@@ -48,6 +49,10 @@ data Type word
 instance (Binary word) => Binary (Term word)
 instance (Binary word) => Binary (Alt word)
 instance (Binary word) => Binary (Type word)
+
+instance (Binary word) => ContentAddress (Term word)
+instance (Binary word) => ContentAddress (Alt word)
+instance (Binary word) => ContentAddress (Type word)
 
 instance (Hashable word) => Hashable (Term word)
 instance (Hashable word) => Hashable (Alt word)
