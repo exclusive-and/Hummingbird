@@ -68,9 +68,6 @@ library
     Crypto.Hash.Generic
     Data.IORef.Extra
     Data.Map.Justified
-    Fetch
-    Fetch.Mapped
-    Fetch.Monad
     Hummingbird.Builtin
     Hummingbird.Codebase
     Hummingbird.Elaboration
@@ -80,6 +77,7 @@ library
     Hummingbird.Elaboration.Monad
     Hummingbird.Elaboration.Rename
     Hummingbird.Error
+    Hummingbird.Fetch
     Hummingbird.Ingest
     Hummingbird.Interpret
     Hummingbird.Literal
@@ -120,6 +118,7 @@ library
     , parsec
     , prettyprinter
     , prettyprinter-ansi-terminal
+    , primitive
     , shellmet
     , some
     , template-haskell
