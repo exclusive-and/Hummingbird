@@ -5,6 +5,7 @@ import Data.GADT.Show
 import Data.Hashable
 import Data.HashSet (HashSet)
 import Data.Kind
+import Data.Some
 import Data.Text (Text)
 import Data.Text.Rope (Rope)
 import Data.Typeable
@@ -64,6 +65,28 @@ instance GEq Query where
 
 instance GShow Query where
   gshowsPrec = defaultGshowsPrec
+
+instance Hashable (Query a) where
+  hashWithSalt = defaultHashWithSalt
+
+  hash = \case
+    InitCodebase        -> go  0 ()
+    GetModule a         -> go  1 a
+    ModuleDefines a     -> go  2 a
+    ModuleDefinitions a -> go  3 a
+    IngestDecl a b      -> go  7 (a, b)
+    FileText a          -> go 10 a
+    FileRope a          -> go 11 a
+    ParsedFile a        -> go 12 a
+    IngestFile a        -> go 13 a
+    IngestDirectory a   -> go 14 a
+    where
+      go :: (Hashable b) => Int -> b -> Int
+      go tag a = Data.Hashable.hash tag `hashWithSalt` a
+
+instance Hashable (Some Query) where
+  hash (Some query) = hash query
+  hashWithSalt salt (Some query) = hashWithSalt salt query
 
 deriving instance Show (Query a)
 deriving instance Typeable (Query a)

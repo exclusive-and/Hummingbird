@@ -52,6 +52,7 @@ instance (Binary word) => Binary (Type word)
 instance (Hashable word) => Hashable (Term word)
 instance (Hashable word) => Hashable (Alt word)
 instance (Hashable word) => Hashable (Type word)
+instance (Hashable word) => Hashable (Declaration word)
 
 instance FromInteger (Term word) where
   fromInteger = Lit . fromInteger @Literal
