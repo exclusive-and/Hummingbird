@@ -13,9 +13,10 @@ import Prelude
 import Prettyprinter
 import System.FilePath
 
-import Hummingbird.Codebase (Codebase)
+import Hummingbird.Codebase as Codebase
+import Hummingbird.Codebase.Id
 import Hummingbird.Elaboration.Rename (RnMap)
-import Hummingbird.Error as Error
+import Hummingbird.Error
 import Hummingbird.Name as Name
 import Hummingbird.Surface qualified as Surface
 import Hummingbird.Var (Var)

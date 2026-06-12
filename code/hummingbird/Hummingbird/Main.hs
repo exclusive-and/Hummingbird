@@ -14,7 +14,8 @@ import Data.Text.IO qualified as Text
 import Prelude
 import Prettyprinter
 
-import Hummingbird.Codebase as Codebase
+import Hummingbird.Codebase
+import Hummingbird.Codebase.Db qualified as Codebase
 import Hummingbird.Error as Error
 import Hummingbird.Fetch as Fetch
 import Hummingbird.Ingest
@@ -70,13 +71,13 @@ compileRules codebase readFile_ parse_ =
       noError $ pure codebase
 
     go (GetModule modName) = noError do
-      liftIO $ Codebase.lookupModule modName codebase >>= \case
+      Codebase.lookupModule modName codebase >>= \case
         Nothing -> do
           pure $ Surface.Module modName []
         Just found -> pure $ fst found
 
     go (ModuleDefines modName) = noError do
-      liftIO $ Codebase.lookupModule modName codebase >>= \case
+      Codebase.lookupModule modName codebase >>= \case
         Nothing -> pure Map.empty
         Just found -> pure $ snd found
 
@@ -112,7 +113,7 @@ compileTask version = do
   ingested <- fetch $ IngestFile srcFilePath
   case ingested of
     Nothing -> pure ()
-    Just errs -> liftIO $ throwM errs
+    Just errs -> throwM errs
   modGuts <- fetch $ GetModule modName
   liftIO $ print $ pretty modGuts
   rnMap <- fetch $ ModuleDefines modName

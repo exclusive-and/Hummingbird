@@ -13,8 +13,8 @@ import Prettyprinter
 import System.FilePath
 
 import Hummingbird.Builtin (builtins)
-import Hummingbird.Codebase (Codebase)
-import Hummingbird.Codebase qualified as Codebase
+import Hummingbird.Codebase
+import Hummingbird.Codebase.Db qualified as Codebase
 import Hummingbird.Elaboration.Rename (RnMap, runRename, renameBinds)
 import Hummingbird.Error (Error)
 import Hummingbird.Error qualified as Error
@@ -70,7 +70,7 @@ ingestFile path codebase = do
         (errs, renamed) = renameMod modName decls
       case renamed of
         Nothing -> pure errs
-        Just (rnMap, renamed') -> liftIO $ do
+        Just (rnMap, renamed') -> do
           let modRenamed = Surface.Module modName $ map (uncurry Surface.Fun) renamed'
           Codebase.addModule modName modRenamed rnMap codebase
           pure errs
