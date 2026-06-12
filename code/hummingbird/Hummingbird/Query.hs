@@ -1,6 +1,7 @@
 module Hummingbird.Query where
 
 import Data.GADT.Compare
+import Data.GADT.Show
 import Data.Hashable
 import Data.HashSet (HashSet)
 import Data.Kind
@@ -60,6 +61,9 @@ instance GEq Query where
   IngestFile x        `geq` IngestFile y        | x == y  = Just Refl
   IngestDirectory x   `geq` IngestDirectory y   | x == y  = Just Refl
   _                   `geq` _                             = Nothing
+
+instance GShow Query where
+  gshowsPrec = defaultGshowsPrec
 
 deriving instance Show (Query a)
 deriving instance Typeable (Query a)

@@ -20,6 +20,7 @@ data Module word = Module {
 data Declaration word
   = Fun word (Term word)
   | Sig word (Type word)
+  deriving (Eq, Generic, Show)
 
 data Term word
   = Lit Literal
