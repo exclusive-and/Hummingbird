@@ -245,9 +245,9 @@ memoiseWithCycleDetection ::
 memoiseWithCycleDetection memoCtxVar depsVar (GenRules rules) =
   GenRules $ fix \mwcd (key :: p a) -> do
     let
-      runToCompletion :: MemoEntry a -> Task q m a
-      runToCompletion (Done a) = pure a
-      runToCompletion (Started hostThreadId memoVar stbyVar) = do
+      getMemo :: MemoEntry a -> Task q m a
+      getMemo (Done a) = pure a
+      getMemo (Started hostThreadId memoVar stbyVar) = do
         threadId <- getThreadId
         let
           checkNoCycles deps =
@@ -261,29 +261,24 @@ memoiseWithCycleDetection memoCtxVar depsVar (GenRules rules) =
             where
               deps' = HashMap.insert threadId hostThreadId deps
         modifyMVar_ stbyVar \case
-          Nothing ->
-            pure Nothing
-          Just stbyThreads -> do
-            join $
-              atomicModifyMutVar
-                depsVar
-                checkNoCycles
-            pure $ Just (threadId : stbyThreads)
+          Nothing -> pure Nothing
+          Just stbyThreads ->
+            Just (threadId : stbyThreads)
+              <$ join (atomicModifyMutVar depsVar checkNoCycles)
         readMVar memoVar >>= maybe (mwcd key) pure
 
     memoCtx <- readMutVar memoCtxVar
     case key `DHashMap.lookup` memoCtx of
-      -- I already have a MemoEntry: let it run to completion.
-      Just entry ->
-        runToCompletion entry
+      -- I already have a MemoEntry for `key`: get the memoised result data.
+      Just entry -> getMemo entry
 
       -- I haven't seen `key` before:
       --  1. create a new MemoEntry for the query;
       --  2. call `rules` on the query to process it in this thread.
       Nothing -> join do
         threadId <- getThreadId
-        freshMemoVar <- newEmptyMVar
-        freshStbyVar <- newMVar (Just [])
+        memoVar <- newEmptyMVar
+        stbyVar <- newMVar (Just [])
         let
           cleanup Nothing =
             error "Hummingbird.Fetch.memoiseWithCycleDetection: something impossible happened"
@@ -298,15 +293,15 @@ memoiseWithCycleDetection memoCtxVar depsVar (GenRules rules) =
             value <- rules key
             -- The query is finished: I can remove my thread from the record
             -- of dependencies now.
-            join $ modifyMVar freshStbyVar cleanup
+            join $ modifyMVar stbyVar cleanup
             -- putMVar wakes any client threads that were blocked on this query.
-            putMVar freshMemoVar (Just value)
+            putMVar memoVar (Just value)
             atomicModifyMutVar memoCtxVar $
               (, value) . DHashMap.insert key (Done value)
         let
           recall (Just entry) =
-            (runToCompletion entry, Just entry)
+            (getMemo entry, Just entry)
           recall Nothing =
-            (launch, Just $ Started threadId freshMemoVar freshStbyVar)
+            (launch, Just $ Started threadId memoVar stbyVar)
         atomicModifyMutVar memoCtxVar $ swap . DHashMap.alterF recall key
 
