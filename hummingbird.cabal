@@ -64,7 +64,7 @@ executable hummingbird
 
 library
   import: common-language
-  hs-source-dirs: ./hummingbird
+  hs-source-dirs: ./lib
   exposed-modules:
     Crypto.Hash.Generic
     Data.ContentAddress

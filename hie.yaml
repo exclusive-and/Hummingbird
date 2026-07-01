@@ -1,6 +1,6 @@
 cradle:
   cabal:
-    - path: "code/app"
+    - path: "app"
       component: "hummingbird:exe:hummingbird"
-    - path: "code/hummingbird"
+    - path: "lib"
       component: "lib:hummingbird"

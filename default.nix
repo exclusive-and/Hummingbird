@@ -12,7 +12,7 @@ let
 
   project = {
     name = "hummingbird";
-    src = ./code;
+    src = ./.;
     version = "0";
     depends = haskellPackages: with haskellPackages; [
       ansi-terminal
