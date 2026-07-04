@@ -11,9 +11,10 @@
     forEachSystem ["x86_64-linux"] (
       system:
       let
-        project = import ./. {
-          inherit lib;
-          nixpkgs = inputs.nixpkgs.legacyPackages.${system};
+        ghcVersion = "ghc912";
+        pkgs = inputs.nixpkgs.legacyPackages.${system};
+        project = pkgs.callPackage ./nix/package.nix {
+          haskellPackages = pkgs.haskell.packages."${ghcVersion}";
         };
       in
       {
