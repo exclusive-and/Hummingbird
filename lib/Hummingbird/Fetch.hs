@@ -35,6 +35,7 @@ import Data.Kind
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe
+import Data.Primitive.Concurrent
 import Data.Primitive.MutVar
 import Data.Primitive.MutVar.Extra (atomicModifyMutVar_)
 import Data.Primitive.MVar as MVar
@@ -224,11 +225,6 @@ detectMemoCycle threadId deps =
           | otherwise         -> go depId
   in
     go threadId
-
--- | Variant of 'Control.Concurrent.myThreadId'.
-getThreadId :: (MonadPrim RealWorld m) => Task q m Control.Concurrent.ThreadId
-getThreadId = 
-  ioToPrim Control.Concurrent.myThreadId
 
 memoiseWithCycleDetection ::
   forall p m q.
