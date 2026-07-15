@@ -267,7 +267,6 @@ memoiseWithCycleDetection memoCtxVar depsVar (GenRules rules) =
     case key `DHashMap.lookup` memoCtx of
       -- I already have a MemoEntry for `key`: get the memoised result data.
       Just entry -> getMemo entry
-
       -- I haven't seen `key` before:
       --  1. create a new MemoEntry for the query;
       --  2. call `rules` on the query to process it in this thread.

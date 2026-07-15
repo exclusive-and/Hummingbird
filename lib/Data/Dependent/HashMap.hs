@@ -44,6 +44,7 @@ module Data.Dependent.HashMap
   Data.Dependent.HashMap.toList,
 ) where
 
+import Prelude qualified
 import Prelude hiding
   ( empty
   , filter
@@ -58,7 +59,6 @@ import Prelude hiding
   , toList
   , traverse
   )
-import Prelude qualified
 
 import Data.Constraint.Extras
 import Data.Dependent.Sum
@@ -75,12 +75,10 @@ import Data.Type.Equality
 -- | @'DHashMap' k v@ is a dependent hash-map datatype:
 -- a key with type @k x@ can influence the type @v x@ of the value at that key, via
 -- the type parameter @x@.
-newtype DHashMap k v =
-  DHashMap (HashMap (Some k) (DSum k v))
+newtype DHashMap k v = DHashMap (HashMap (Some k) (DSum k v))
 
-deriving newtype instance (GEq k, Has' Eq k v) => Eq (DHashMap k v)
-deriving newtype instance
-  (GCompare k, Has' Eq k v, Has' Ord k v) => Ord (DHashMap k v)
+deriving instance (GEq k, Has' Eq k v) => Eq (DHashMap k v)
+deriving instance (GCompare k, Has' Eq k v, Has' Ord k v) => Ord (DHashMap k v)
 
 deriving newtype instance (GEq k, Hashable (Some k)) => Monoid (DHashMap k v)
 deriving newtype instance (GEq k, Hashable (Some k)) => Semigroup (DHashMap k v)
@@ -291,20 +289,14 @@ map ::
   -> DHashMap k v
   -> DHashMap k v'
 map f (DHashMap h) =
-  let
-    go (k :=> v) = k :=> f v
-  in
-    DHashMap $ HashMap.map go h
+  DHashMap $ HashMap.map (\(k :=> v) -> k :=> f v) h
 
 mapWithKey ::
   (forall a. k a -> v a -> v' a)
   -> DHashMap k v
   -> DHashMap k v'
 mapWithKey f (DHashMap h) =
-  let
-    go (k :=> v) = k :=> f k v
-  in
-    DHashMap $ HashMap.map go h
+  DHashMap $ HashMap.map (\(k :=> v) -> k :=> f k v) h
 
 traverse ::
   (Applicative f)
@@ -312,10 +304,8 @@ traverse ::
   -> DHashMap k v
   -> f (DHashMap k v')
 traverse f (DHashMap h) =
-  let
-    go (k :=> v) = (k :=>) <$> f v
-  in
-    DHashMap <$> Prelude.traverse go h
+  DHashMap <$>
+    Prelude.traverse (\(k :=> v) -> (k :=>) <$> f v) h
 
 traverseWithKey ::
   (Applicative f)
@@ -323,17 +313,14 @@ traverseWithKey ::
   -> DHashMap k v
   -> f (DHashMap k v')
 traverseWithKey f (DHashMap h) =
-  let
-    go (k :=> v) = (k :=>) <$> f k v
-  in
-    DHashMap <$> Prelude.traverse go h
+  DHashMap <$>
+    Prelude.traverse (\(k :=> v) -> (k :=>) <$> f k v) h
 
 keys :: DHashMap k v -> [Some k]
 keys (DHashMap h) = HashMap.keys h
 
 elems :: DHashMap k v -> [Some v]
-elems (DHashMap h) =
-  [ Some v | _ :=> v <- HashMap.elems h ]
+elems (DHashMap h) = [ Some v | _ :=> v <- HashMap.elems h ]
 
 toList :: DHashMap k v -> [DSum k v]
 toList (DHashMap h) = HashMap.elems h
