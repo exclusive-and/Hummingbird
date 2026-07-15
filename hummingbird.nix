@@ -39,10 +39,10 @@
 , vty
 }:
 
-lib.fix (hummingbird:
-  mkDerivation {
+lib.fix (
+  hummingbird: mkDerivation {
     pname = "hummingbird";
-    src = ../.;
+    src = ./.;
     version = "0";
     isExecutable = true;
     isLibrary = true;
