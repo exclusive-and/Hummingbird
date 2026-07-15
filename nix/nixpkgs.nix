@@ -1,4 +1,3 @@
-{
-  sources ? import ./sources.nix
-}:
+{ sources ? import ./sources.nix }:
+
 import sources.nixpkgs {}

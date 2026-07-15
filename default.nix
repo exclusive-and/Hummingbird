@@ -4,6 +4,6 @@
 , ...
 }@args:
 
-pkgs.callPackage ./nix/package.nix {
+pkgs.callPackage ./package.nix {
   haskellPackages = pkgs.haskell.packages."${ghcVersion}";
 }
