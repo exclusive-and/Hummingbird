@@ -70,6 +70,8 @@ library
     Data.ContentAddress
     Data.Dependent.HashMap
     Data.Fetch
+    Data.Graph
+    Data.Graph.Internal
     Data.IORef.Extra
     Data.Map.Justified
     Data.Primitive.Concurrent
@@ -139,3 +141,5 @@ library
     , these
     , transformers
     , unordered-containers
+  mixins:
+    containers hiding (Data.Graph)
