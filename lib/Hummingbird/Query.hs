@@ -1,58 +1,88 @@
 module Hummingbird.Query where
 
+import Prelude
+import Prettyprinter
+
 import Control.Concurrent
 import Control.Monad
 import Control.Monad.Primitive
+import Data.ContentAddress
 import Data.Dependent.HashMap (DHashMap)
 import Data.GADT.Compare
 import Data.GADT.Show
 import Data.Hashable
 import Data.HashMap.Lazy (HashMap)
-import Data.HashSet (HashSet)
-import Data.Primitive.MutVar (MutVar)
+import Data.Map (Map)
+import Data.Map qualified as Map
+import Data.Primitive.MutVar
+import Data.Set (Set)
+import Data.Set qualified as Set
 import Data.Some
-import Data.Text (Text)
 import Data.Text.Rope (Rope)
 import Data.Typeable
-import Prelude
-import Prettyprinter
 
 import Hummingbird.Codebase as Codebase
 import Hummingbird.Codebase.Id
-import Hummingbird.Elaboration.Var (Var)
 import Hummingbird.Error
 import Hummingbird.Fetch
 import Hummingbird.Name as Name
-import Hummingbird.Surface
-  ( Declaration
-  , Term
-  , Type
-  )
 import Hummingbird.Surface qualified as Surface
+import Hummingbird.Var
 
 data Query answer where
-  -- | Initalize a new codebase.
-  InitCodebase :: Query Codebase
   -- |
-  LookupName :: Name -> Query (Maybe (Hash, Term Var))
+  GetCodebase :: Query Codebase
+
   -- |
-  RenameExpr :: Term Name -> Query (CodePatch Renamed)
+  GetAllKeys :: Query (Map Name Id)
+  
   -- |
-  RenameDecls :: [Declaration Name] -> Query (CodePatch Renamed)
+  LookupName ::
+    !Name
+    -> Query (Maybe (Hash, Surface.Term Var))
+
+  -- |
+  RenameExpr ::
+    Surface.Term Name
+    -> Query (CodePatch Renamed)
+
+  -- |
+  RenameDecls ::
+    [Surface.Declaration Name]
+    -> Query
+        ( [Error]
+        , [(Var, Surface.Term Var, FreeVars)]
+        )
+
+  -- |
+  SerializeDecls ::
+    [(Var, Surface.Term Var, FreeVars)]
+    -> Query (CodePatch Renamed)
+
+  -- |
+  ParseRepl :: !Text -> Query (CodePatch Parsed)
+
   -- | Ingest a parsed surface-language declaration and try to intern
   -- its changes into the codebase.
   IngestDecl ::
     !Name.Module
-    -> Declaration Name
+    -> Surface.Declaration Name
     -> Query (Maybe [Error])
+
   -- | What is the raw text of this source file?
   FileText :: !FilePath -> Query Text
+
   -- | What is the rope representation of this source file?
   FileRope :: !FilePath -> Query Rope
+
   -- |
-  ParsedFile :: !FilePath -> Query (Either [Error] (Surface.Module Name))
+  ParsedFile ::
+    !FilePath
+    -> Query (Either [Error] (Surface.Module Name))
+
   -- | Ingest a source file and try to intern its changes into the codebase.
   IngestFile :: !FilePath -> Query (Maybe [Error])
+
   -- | Ingest a directory recursively.
   IngestDirectory :: !FilePath -> Query (Maybe [Error])
 
@@ -60,10 +90,12 @@ instance Eq (Query a) where
   (==) = defaultEq
 
 instance GEq Query where
-  InitCodebase        `geq` InitCodebase                  = Just Refl
+  GetCodebase         `geq` GetCodebase                   = Just Refl
+  GetAllKeys          `geq` GetAllKeys                    = Just Refl
   LookupName x        `geq` LookupName y        | x == y  = Just Refl
   RenameExpr x        `geq` RenameExpr y        | x == y  = Just Refl
   RenameDecls x       `geq` RenameDecls y       | x == y  = Just Refl
+  SerializeDecls x    `geq` SerializeDecls y    | x == y  = Just Refl
   IngestDecl nm1 decl1 `geq` IngestDecl nm2 decl2
     | nm1 == nm2, decl1 == decl2                          = Just Refl
   FileText x          `geq` FileText y          | x == y  = Just Refl
@@ -80,16 +112,19 @@ instance Hashable (Query a) where
   hashWithSalt = defaultHashWithSalt
 
   hash = \case
-    InitCodebase        -> go  0 ()
-    LookupName a        -> go  1 a
-    RenameExpr a        -> go  2 a
-    RenameDecls a       -> go  3 a
-    IngestDecl a b      -> go  7 (a, b)
-    FileText a          -> go 10 a
-    FileRope a          -> go 11 a
-    ParsedFile a        -> go 12 a
-    IngestFile a        -> go 13 a
-    IngestDirectory a   -> go 14 a
+    GetCodebase         -> go  0 ()
+    GetAllKeys          -> go  1 ()
+    LookupName a        -> go  2 a
+    RenameExpr a        -> go  5 a
+    RenameDecls a       -> go  6 a
+    SerializeDecls a    -> go  7 a
+    ParseRepl a         -> go 10 a
+    FileText a          -> go 50 a
+    FileRope a          -> go 51 a
+    IngestDecl a b      -> go 52 (a, b)
+    ParsedFile a        -> go 53 a
+    IngestFile a        -> go 54 a
+    IngestDirectory a   -> go 55 a
     where
       go :: (Hashable b) => Int -> b -> Int
       go tag a = Data.Hashable.hash tag `hashWithSalt` a
