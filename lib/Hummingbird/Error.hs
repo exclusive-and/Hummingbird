@@ -1,21 +1,30 @@
 module Hummingbird.Error where
 
 import Control.Exception (Exception)
+import Data.Binary
+import Data.ContentAddress
 import Data.Hashable
+import Data.Text qualified as Text
 import Prelude
 import Prettyprinter
 
-import Hummingbird.Name (Name)
-import Hummingbird.Name qualified as Name
+import Hummingbird.Codebase.Hash
+import Hummingbird.Codebase.Id
+import Hummingbird.Elaboration.Var (Var)
+import Hummingbird.Name as Name
 import Hummingbird.Surface qualified as Surface
-import Hummingbird.Var (Var)
-import Hummingbird.Var qualified as Var
 
 -- |
 data Error
-  = CannotParse !FilePath !Text
+  = RawMessage !Text
+  | CannotParse !FilePath !Text
   | Elaboration !Elaboration
-  deriving stock (Eq, Generic, Show)
+  deriving
+    ( Eq
+    , Generic
+    , Show
+    )
+  deriving anyclass (Binary, Hashable)
 
 instance Exception Error
 instance Exception [Error]
@@ -28,13 +37,16 @@ reportAll = print . vcat . map pretty
 data Elaboration
   = NotInScope !Name
   | AmbiguousNames !Name !Var
-  deriving stock (Eq, Generic, Show)
-
-instance Hashable Error
-instance Hashable Elaboration
+  deriving
+    ( Eq
+    , Generic
+    , Show
+    )
+  deriving anyclass (Binary, Hashable)
 
 instance Pretty Error where
   pretty = \case
+    RawMessage msg -> hang 2 $ vcat $ pretty <$> Text.lines msg
     CannotParse path msg ->
       hang 2 $ pretty msg
     Elaboration elab -> pretty elab
