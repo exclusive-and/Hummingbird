@@ -20,6 +20,7 @@ import Prettyprinter
 import Hummingbird.Codebase as Codebase
 import Hummingbird.Codebase.Id
 import Hummingbird.Elaboration.Rename (RnMap)
+import Hummingbird.Elaboration.Var (Var)
 import Hummingbird.Error
 import Hummingbird.Fetch
 import Hummingbird.Name as Name
@@ -29,7 +30,6 @@ import Hummingbird.Surface
   , Type
   )
 import Hummingbird.Surface qualified as Surface
-import Hummingbird.Var (Var)
 
 data Query answer where
   -- | Initalize a new codebase.
@@ -62,15 +62,6 @@ data Query answer where
   IngestFile :: !FilePath -> Query (Maybe [Error])
   -- | Ingest a directory recursively.
   IngestDirectory :: !FilePath -> Query (Maybe [Error])
-
-{-# Specialize
-    memoiseWithCycleDetection ::
-      (Memoiseable Query)
-      => MutVar RealWorld (DHashMap Query MemoEntry)
-      -> MutVar RealWorld (HashMap ThreadId ThreadId)
-      -> GenRules IO Query Query
-      -> GenRules IO Query Query
-    #-}
 
 instance Eq (Query a) where
   (==) = defaultEq
@@ -122,3 +113,12 @@ instance Hashable (Some Query) where
 
 deriving instance Show (Query a)
 deriving instance Typeable (Query a)
+
+{-# Specialize
+    memoiseWithCycleDetection ::
+      (Memoiseable Query)
+      => MutVar RealWorld (DHashMap Query MemoEntry)
+      -> MutVar RealWorld (HashMap ThreadId ThreadId)
+      -> GenRules IO Query Query
+      -> GenRules IO Query Query
+    #-}
