@@ -1,6 +1,7 @@
 module Hummingbird.Repl where
 
 import Control.Exception
+import Data.Fetch as Fetch
 import Data.IORef
 import Data.IORef.Extra (atomicModifyIORef_)
 import Data.Map (Map)
@@ -13,7 +14,6 @@ import Prettyprinter
 
 import Hummingbird.Codebase as Codebase
 import Hummingbird.Error as Error
-import Hummingbird.Fetch as Fetch
 import Hummingbird.Ingest
 import Hummingbird.Interpret (interpret)
 import Hummingbird.Name as Name

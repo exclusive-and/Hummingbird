@@ -1,7 +1,7 @@
 {-# Language PolyKinds #-}
 {-# Language UndecidableInstances #-}
 
-module Hummingbird.Fetch where
+module Data.Fetch where
 
 import Prelude
 
@@ -276,7 +276,7 @@ memoiseWithCycleDetection memoCtxVar depsVar (GenRules rules) =
         stbyVar <- newMVar (Just [])
         let
           cleanup Nothing =
-            error "Hummingbird.Fetch.memoiseWithCycleDetection: something impossible happened"
+            error "Data.Fetch.memoiseWithCycleDetection: something impossible happened"
           cleanup (Just stbyThreads) =
             pure
               ( Nothing

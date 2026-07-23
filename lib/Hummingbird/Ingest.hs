@@ -1,5 +1,6 @@
 module Hummingbird.Ingest where
 
+import Data.Fetch as Fetch
 import Data.HashSet (HashSet)
 import Data.HashSet qualified as HashSet
 import Data.IORef
@@ -18,7 +19,6 @@ import Hummingbird.Codebase.Db qualified as Codebase
 import Hummingbird.Elaboration.Rename (RnMap, runRename, renameBinds)
 import Hummingbird.Error (Error)
 import Hummingbird.Error qualified as Error
-import Hummingbird.Fetch as Fetch
 import Hummingbird.Name (Name)
 import Hummingbird.Name qualified as Name
 import Hummingbird.Query (Query (..))

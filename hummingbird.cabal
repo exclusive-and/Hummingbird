@@ -69,6 +69,7 @@ library
     Crypto.Hash.Generic
     Data.ContentAddress
     Data.Dependent.HashMap
+    Data.Fetch
     Data.IORef.Extra
     Data.Map.Justified
     Data.Primitive.Concurrent
@@ -87,7 +88,6 @@ library
     Hummingbird.Elaboration.Monad
     Hummingbird.Elaboration.Rename
     Hummingbird.Error
-    Hummingbird.Fetch
     Hummingbird.Ingest
     Hummingbird.Interpret
     Hummingbird.Literal
