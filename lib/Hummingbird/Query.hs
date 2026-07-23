@@ -19,7 +19,6 @@ import Prettyprinter
 
 import Hummingbird.Codebase as Codebase
 import Hummingbird.Codebase.Id
-import Hummingbird.Elaboration.Rename (RnMap)
 import Hummingbird.Elaboration.Var (Var)
 import Hummingbird.Error
 import Hummingbird.Fetch
@@ -40,12 +39,6 @@ data Query answer where
   RenameExpr :: Term Name -> Query (CodePatch Renamed)
   -- |
   RenameDecls :: [Declaration Name] -> Query (CodePatch Renamed)
-  -- | Get the latest interned version of a module.
-  GetModule :: !Name.Module -> Query (Surface.Module Var)
-  -- | What names does this module define?
-  ModuleDefines :: !Name.Module -> Query RnMap
-  -- | What definitions does this module contain?
-  ModuleDefinitions :: !Name.Module -> Query [Declaration Var]
   -- | Ingest a parsed surface-language declaration and try to intern
   -- its changes into the codebase.
   IngestDecl ::
@@ -71,9 +64,6 @@ instance GEq Query where
   LookupName x        `geq` LookupName y        | x == y  = Just Refl
   RenameExpr x        `geq` RenameExpr y        | x == y  = Just Refl
   RenameDecls x       `geq` RenameDecls y       | x == y  = Just Refl
-  GetModule x         `geq` GetModule y         | x == y  = Just Refl
-  ModuleDefines x     `geq` ModuleDefines y     | x == y  = Just Refl
-  ModuleDefinitions x `geq` ModuleDefinitions y | x == y  = Just Refl
   IngestDecl nm1 decl1 `geq` IngestDecl nm2 decl2
     | nm1 == nm2, decl1 == decl2                          = Just Refl
   FileText x          `geq` FileText y          | x == y  = Just Refl
@@ -94,9 +84,6 @@ instance Hashable (Query a) where
     LookupName a        -> go  1 a
     RenameExpr a        -> go  2 a
     RenameDecls a       -> go  3 a
-    GetModule a         -> go  4 a
-    ModuleDefines a     -> go  5 a
-    ModuleDefinitions a -> go  6 a
     IngestDecl a b      -> go  7 (a, b)
     FileText a          -> go 10 a
     FileRope a          -> go 11 a
