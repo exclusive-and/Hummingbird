@@ -1,9 +1,15 @@
 module Hummingbird.Query where
 
+import Control.Concurrent
+import Control.Monad
+import Control.Monad.Primitive
+import Data.Dependent.HashMap (DHashMap)
 import Data.GADT.Compare
 import Data.GADT.Show
 import Data.Hashable
+import Data.HashMap.Lazy (HashMap)
 import Data.HashSet (HashSet)
+import Data.Primitive.MutVar (MutVar)
 import Data.Some
 import Data.Text (Text)
 import Data.Text.Rope (Rope)
@@ -15,6 +21,7 @@ import Hummingbird.Codebase as Codebase
 import Hummingbird.Codebase.Id
 import Hummingbird.Elaboration.Rename (RnMap)
 import Hummingbird.Error
+import Hummingbird.Fetch
 import Hummingbird.Name as Name
 import Hummingbird.Surface
   ( Declaration
@@ -55,6 +62,15 @@ data Query answer where
   IngestFile :: !FilePath -> Query (Maybe [Error])
   -- | Ingest a directory recursively.
   IngestDirectory :: !FilePath -> Query (Maybe [Error])
+
+{-# Specialize
+    memoiseWithCycleDetection ::
+      (Memoiseable Query)
+      => MutVar RealWorld (DHashMap Query MemoEntry)
+      -> MutVar RealWorld (HashMap ThreadId ThreadId)
+      -> GenRules IO Query Query
+      -> GenRules IO Query Query
+    #-}
 
 instance Eq (Query a) where
   (==) = defaultEq
