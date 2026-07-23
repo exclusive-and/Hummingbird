@@ -4,37 +4,46 @@ import Data.GADT.Compare
 import Data.GADT.Show
 import Data.Hashable
 import Data.HashSet (HashSet)
-import Data.Kind
 import Data.Some
 import Data.Text (Text)
 import Data.Text.Rope (Rope)
 import Data.Typeable
 import Prelude
 import Prettyprinter
-import System.FilePath
 
 import Hummingbird.Codebase as Codebase
 import Hummingbird.Codebase.Id
 import Hummingbird.Elaboration.Rename (RnMap)
 import Hummingbird.Error
 import Hummingbird.Name as Name
+import Hummingbird.Surface
+  ( Declaration
+  , Term
+  , Type
+  )
 import Hummingbird.Surface qualified as Surface
 import Hummingbird.Var (Var)
 
-data Query (answer :: Type) where
+data Query answer where
   -- | Initalize a new codebase.
   InitCodebase :: Query Codebase
+  -- |
+  LookupName :: Name -> Query (Maybe (Hash, Term Var))
+  -- |
+  RenameExpr :: Term Name -> Query (CodePatch Renamed)
+  -- |
+  RenameDecls :: [Declaration Name] -> Query (CodePatch Renamed)
   -- | Get the latest interned version of a module.
   GetModule :: !Name.Module -> Query (Surface.Module Var)
   -- | What names does this module define?
   ModuleDefines :: !Name.Module -> Query RnMap
   -- | What definitions does this module contain?
-  ModuleDefinitions :: !Name.Module -> Query [Surface.Declaration Var]
+  ModuleDefinitions :: !Name.Module -> Query [Declaration Var]
   -- | Ingest a parsed surface-language declaration and try to intern
   -- its changes into the codebase.
   IngestDecl ::
     !Name.Module
-    -> Surface.Declaration Name
+    -> Declaration Name
     -> Query (Maybe [Error])
   -- | What is the raw text of this source file?
   FileText :: !FilePath -> Query Text
@@ -52,6 +61,9 @@ instance Eq (Query a) where
 
 instance GEq Query where
   InitCodebase        `geq` InitCodebase                  = Just Refl
+  LookupName x        `geq` LookupName y        | x == y  = Just Refl
+  RenameExpr x        `geq` RenameExpr y        | x == y  = Just Refl
+  RenameDecls x       `geq` RenameDecls y       | x == y  = Just Refl
   GetModule x         `geq` GetModule y         | x == y  = Just Refl
   ModuleDefines x     `geq` ModuleDefines y     | x == y  = Just Refl
   ModuleDefinitions x `geq` ModuleDefinitions y | x == y  = Just Refl
@@ -72,9 +84,12 @@ instance Hashable (Query a) where
 
   hash = \case
     InitCodebase        -> go  0 ()
-    GetModule a         -> go  1 a
-    ModuleDefines a     -> go  2 a
-    ModuleDefinitions a -> go  3 a
+    LookupName a        -> go  1 a
+    RenameExpr a        -> go  2 a
+    RenameDecls a       -> go  3 a
+    GetModule a         -> go  4 a
+    ModuleDefines a     -> go  5 a
+    ModuleDefinitions a -> go  6 a
     IngestDecl a b      -> go  7 (a, b)
     FileText a          -> go 10 a
     FileRope a          -> go 11 a
