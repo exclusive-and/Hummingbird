@@ -9,6 +9,7 @@ import Data.ByteArray qualified as ByteArray
 import Data.ByteString (ByteString)
 import Data.ByteString.Short (ShortByteString)
 import Data.Hashable
+import Data.List (sortBy)
 import Data.Text qualified as Text
 import Prelude
 import Prettyprinter
@@ -58,3 +59,9 @@ class ContentAddress a where
 instance ContentAddress Hash where
   contentHash a = a
   {-# INLINE contentHash #-}
+
+caSort :: (ContentAddress a) => [a] -> [a]
+caSort = caSortBy id
+
+caSortBy :: (ContentAddress x) => (a -> x) -> [a] -> [a]
+caSortBy f = sortBy (compare `on` contentHash . f)
