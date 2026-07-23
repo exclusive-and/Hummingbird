@@ -14,10 +14,13 @@ data Literal
   = Int !Integer
   | Char !Char
   | String !Text
-  deriving (Eq, Generic, Show)
-
-instance Binary Literal
-instance Hashable Literal
+  deriving
+    ( Eq
+    , Generic
+    , Ord
+    , Show
+    )
+  deriving anyclass (Binary, Hashable)
 
 instance FromInteger Literal where
   fromInteger = Int
