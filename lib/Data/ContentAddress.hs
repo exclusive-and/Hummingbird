@@ -45,7 +45,7 @@ instance Binary Hash where
 
 instance Pretty Hash where
   pretty (Hash a) =
-    angles $ pretty (Text.pack $ take 8 $ show a) <> "..."
+    "#" <> pretty (Text.pack $ take 8 $ show a) <> "..."
 
 -- | @'ContentAddress'@ is the class of content-addressable datatypes.
 class ContentAddress a where
